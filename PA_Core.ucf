@@ -1,0 +1,24 @@
+NET "reset_i" LOC = "p101";//P101
+NET "clock_i" LOC = "p184";//P184
+
+NET "wbValAFinal_o[0]"  LOC ="p61";
+NET "wbValAFinal_o[1]"  LOC ="p60";
+//NET "wbValAFinal_o[2]"  LOC ="p55";
+NET "wbValAFinal_o[3]"  LOC ="p50";
+NET "wbValAFinal_o[4]"  LOC ="p49";
+NET "wbValAFinal_o[5]"  LOC ="p48";
+NET "wbValAFinal_o[6]"  LOC ="p47";
+//NET "wbValAFinal_o[7]"  LOC ="p45";
+NET "wbValAFinal_o[8]"  LOC ="p42";
+NET "wbValAFinal_o[9]"  LOC ="p41";
+NET "wbValAFinal_o[10]"  LOC ="p40";
+NET "wbValAFinal_o[11]"  LOC ="p39";
+NET "wbValAFinal_o[12]"  LOC ="p36";
+NET "wbValAFinal_o[13]"  LOC ="p35";
+NET "wbValAFinal_o[14]"  LOC ="p34";
+NET "wbValAFinal_o[15]"  LOC ="p33";
+
+NET "wbAddrAFinal_o[0]" LOC =" P68" ;
+NET "wbAddrAFinal_o[1]" LOC = "P78" ;
+NET "wbAddrAFinal_o[2]" LOC = "P83" ;
+NET "wbAddrAFinal_o[3]" LOC = "P89";
