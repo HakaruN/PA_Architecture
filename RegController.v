@@ -2,14 +2,14 @@
 `default_nettype none
 module RegController(
 	//Inputs from the decoder
-   input clock_i, reset_i,
-	input [5:0] bankSelect_i,//register bank address
-   input enableA_i, enableB_i,
-	input pwriteA_i, preadA_i, sreadA_i, pwriteB_i, preadB_i, sreadB_i,
-	input [1:0] functionTypeA_i, functionTypeB_i,
-	input [6:0] opcodeA_i, opcodeB_i,
-	input [4:0] primOperandA_i, primOperandB_i,
-	input [15:0] secOperandA_i, secOperandB_i,
+   input wire clock_i, reset_i,
+	input wire [5:0] bankSelect_i,//register bank address
+   input wire enableA_i, enableB_i,
+	input wire pwriteA_i, preadA_i, sreadA_i, pwriteB_i, preadB_i, sreadB_i,
+	input wire[1:0] functionTypeA_i, functionTypeB_i,
+	input wire [6:0] opcodeA_i, opcodeB_i,
+	input wire[4:0] primOperandA_i, primOperandB_i,
+	input wire [15:0] secOperandA_i, secOperandB_i,
 	
 	//outputs to the Exec port
 	output reg enableA_o, enableB_o,
@@ -21,9 +21,9 @@ module RegController(
 	output reg [1:0] functionTypeA_o, functionTypeB_o,
 	
 	//inputs to register writeback
-	input wbA_i, wbB_i,
-	input [4:0] wbAddrA_i, wbAddrB_i,
-	input [15:0] wbValA_i, bwVAlB_i
+	input wire wbA_i, wbB_i,
+	input wire [4:0] wbAddrA_i, wbAddrB_i,
+	input wire [15:0] wbValA_i, bwVAlB_i
    );
 	
 	

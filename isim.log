@@ -1,0 +1,742 @@
+ISim log file
+Running: /home/hakaru/Projects/Verilog/PA_Architecture/PA_Architecture/coreTest_isim_beh.exe -intstyle ise -gui -tclbatch isim.cmd -wdb /home/hakaru/Projects/Verilog/PA_Architecture/PA_Architecture/coreTest_isim_beh.wdb 
+ISim P.20131013 (signature 0xfbc00daa)
+WARNING: A WEBPACK license was found.
+WARNING: Please use Xilinx License Configuration Manager to check out a full ISim license.
+WARNING: ISim will run in Lite mode. Please refer to the ISim documentation for more information on the differences between the Lite and the Full version.
+This is a Lite version of ISim.
+Time resolution is 1 ps
+# onerror resume
+# wave add /
+# run 1000 ns
+Simulator is doing circuit initialization process.
+
+
+Global processor state Registers; PC:     x, RegisterBank:  x, Reset: 0
+
+Fetch:
+Fetched xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, Enable: x
+
+Parse:
+Is branch; A:x, B:x
+Format; A:x, B:x
+Opcode; A:  x, B:  x
+Reg; A: x, B: x
+Operand; A:    x, B:    x
+Enable; A:x, B:x
+
+Decode:
+Opcode; A:  x, B:  x
+FunctionType; A:x, B:x
+Primary operand; A: x, B: x
+Second operand; A:    x, B:    x
+Reg accesses (pr,pw,sr); A:x,x,x, B:x,x,x
+Enables; A:x, B:x
+
+Reg Read:
+Enable; A:x, B:x
+IsWriteback; A:x B:x
+Is secondary immediate (0) or reg(1); A:x, B:x
+Reg writeback Address; A: x, B: x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:x B:x
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: x
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: x
+opcode:   x
+
+
+Finished circuit initialization process.
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx, Enable: x
+
+Parse:
+Is branch; A:x, B:x
+Format; A:x, B:x
+Opcode; A:  x, B:  x
+Reg; A: x, B: x
+Operand; A:    x, B:    x
+Enable; A:x, B:x
+
+Decode:
+Opcode; A:  x, B:  x
+FunctionType; A:x, B:x
+Primary operand; A: x, B: x
+Second operand; A:    x, B:    x
+Reg accesses (pr,pw,sr); A:x,x,x, B:x,x,x
+Enables; A:x, B:x
+
+Reg Read:
+Enable; A:x, B:x
+IsWriteback; A:x B:x
+Is secondary immediate (0) or reg(1); A:x, B:x
+Reg writeback Address; A: x, B: x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 1
+
+Parse:
+Is branch; A:x, B:x
+Format; A:x, B:x
+Opcode; A:  x, B:  x
+Reg; A: x, B: x
+Operand; A:    x, B:    x
+Enable; A:x, B:x
+
+Decode:
+Opcode; A:  x, B:  x
+FunctionType; A:x, B:x
+Primary operand; A: x, B: x
+Second operand; A:    x, B:    x
+Reg accesses (pr,pw,sr); A:x,x,x, B:x,x,x
+Enables; A:x, B:x
+
+Reg Read:
+Enable; A:x, B:x
+IsWriteback; A:x B:x
+Is secondary immediate (0) or reg(1); A:x, B:x
+Reg writeback Address; A: x, B: x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 0
+
+Parse:
+Is branch; A:x, B:x
+Format; A:x, B:x
+Opcode; A:  x, B:  x
+Reg; A: x, B: x
+Operand; A:    x, B:    x
+Enable; A:x, B:x
+
+Decode:
+Opcode; A:  x, B:  x
+FunctionType; A:x, B:x
+Primary operand; A: x, B: x
+Second operand; A:    x, B:    x
+Reg accesses (pr,pw,sr); A:x,x,x, B:x,x,x
+Enables; A:x, B:x
+
+Reg Read:
+Enable; A:x, B:x
+IsWriteback; A:x B:x
+Is secondary immediate (0) or reg(1); A:x, B:x
+Reg writeback Address; A: x, B: x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 0
+
+Parse:
+Is branch; A:0, B:0
+Format; A:1, B:1
+Opcode; A:  4, B:  4
+Reg; A: 1, B: 2
+Operand; A:   10, B:    5
+Enable; A:1, B:1
+
+Decode:
+Opcode; A:  x, B:  x
+FunctionType; A:x, B:x
+Primary operand; A: x, B: x
+Second operand; A:    x, B:    x
+Reg accesses (pr,pw,sr); A:x,x,x, B:x,x,x
+Enables; A:x, B:x
+
+Reg Read:
+Enable; A:x, B:x
+IsWriteback; A:x B:x
+Is secondary immediate (0) or reg(1); A:x, B:x
+Reg writeback Address; A: x, B: x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 0
+
+Parse:
+Is branch; A:0, B:0
+Format; A:1, B:1
+Opcode; A:  4, B:  4
+Reg; A: 1, B: 2
+Operand; A:   10, B:    5
+Enable; A:0, B:0
+
+Decode:
+Opcode; A:  4, B:  4
+FunctionType; A:x, B:x
+Primary operand; A: 1, B: 2
+Second operand; A:   10, B:    5
+Reg accesses (pr,pw,sr); A:1,0,0, B:1,0,0
+Enables; A:1, B:1
+
+Reg Read:
+Enable; A:x, B:x
+IsWriteback; A:x B:x
+Is secondary immediate (0) or reg(1); A:0, B:0
+Reg writeback Address; A: x, B: x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 0
+
+Parse:
+Is branch; A:0, B:0
+Format; A:1, B:1
+Opcode; A:  4, B:  4
+Reg; A: 1, B: 2
+Operand; A:   10, B:    5
+Enable; A:0, B:0
+
+Decode:
+Opcode; A:  4, B:  4
+FunctionType; A:x, B:x
+Primary operand; A: 1, B: 2
+Second operand; A:   10, B:    5
+Reg accesses (pr,pw,sr); A:1,0,0, B:1,0,0
+Enables; A:0, B:0
+
+Reg Read:
+Enable; A:x, B:x
+IsWriteback; A:x B:x
+Is secondary immediate (0) or reg(1); A:0, B:0
+Reg writeback Address; A: x, B: x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 0
+
+Parse:
+Is branch; A:0, B:0
+Format; A:1, B:1
+Opcode; A:  4, B:  4
+Reg; A: 1, B: 2
+Operand; A:   10, B:    5
+Enable; A:0, B:0
+
+Decode:
+Opcode; A:  4, B:  4
+FunctionType; A:x, B:x
+Primary operand; A: 1, B: 2
+Second operand; A:   10, B:    5
+Reg accesses (pr,pw,sr); A:1,0,0, B:1,0,0
+Enables; A:0, B:0
+
+Reg Read:
+Enable; A:1, B:1
+IsWriteback; A:1 B:1
+Is secondary immediate (0) or reg(1); A:0, B:0
+Reg writeback Address; A: 1, B: 2
+Opcode; A:  4, B:  4
+PrimOperand; A:    1, B:    2
+SecOperand; A:   10, B:    5
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 0
+
+Parse:
+Is branch; A:0, B:0
+Format; A:1, B:1
+Opcode; A:  4, B:  4
+Reg; A: 1, B: 2
+Operand; A:   10, B:    5
+Enable; A:0, B:0
+
+Decode:
+Opcode; A:  4, B:  4
+FunctionType; A:x, B:x
+Primary operand; A: 1, B: 2
+Second operand; A:   10, B:    5
+Reg accesses (pr,pw,sr); A:1,0,0, B:1,0,0
+Enables; A:0, B:0
+
+Reg Read:
+Enable; A:0, B:0
+IsWriteback; A:1 B:1
+Is secondary immediate (0) or reg(1); A:0, B:0
+Reg writeback Address; A: 1, B: 2
+Opcode; A:  4, B:  4
+PrimOperand; A:    1, B:    2
+SecOperand; A:   10, B:    5
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 0
+
+Parse:
+Is branch; A:0, B:0
+Format; A:1, B:1
+Opcode; A:  4, B:  4
+Reg; A: 1, B: 2
+Operand; A:   10, B:    5
+Enable; A:0, B:0
+
+Decode:
+Opcode; A:  4, B:  4
+FunctionType; A:x, B:x
+Primary operand; A: 1, B: 2
+Second operand; A:   10, B:    5
+Reg accesses (pr,pw,sr); A:1,0,0, B:1,0,0
+Enables; A:0, B:0
+
+Reg Read:
+Enable; A:0, B:0
+IsWriteback; A:1 B:1
+Is secondary immediate (0) or reg(1); A:0, B:0
+Reg writeback Address; A: 1, B: 2
+Opcode; A:  4, B:  4
+PrimOperand; A:    1, B:    2
+SecOperand; A:   10, B:    5
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 0
+
+Parse:
+Is branch; A:0, B:0
+Format; A:1, B:1
+Opcode; A:  4, B:  4
+Reg; A: 1, B: 2
+Operand; A:   10, B:    5
+Enable; A:0, B:0
+
+Decode:
+Opcode; A:  4, B:  4
+FunctionType; A:x, B:x
+Primary operand; A: 1, B: 2
+Second operand; A:   10, B:    5
+Reg accesses (pr,pw,sr); A:1,0,0, B:1,0,0
+Enables; A:0, B:0
+
+Reg Read:
+Enable; A:0, B:0
+IsWriteback; A:1 B:1
+Is secondary immediate (0) or reg(1); A:0, B:0
+Reg writeback Address; A: 1, B: 2
+Opcode; A:  4, B:  4
+PrimOperand; A:    1, B:    2
+SecOperand; A:   10, B:    5
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 0
+
+Parse:
+Is branch; A:0, B:0
+Format; A:1, B:1
+Opcode; A:  4, B:  4
+Reg; A: 1, B: 2
+Operand; A:   10, B:    5
+Enable; A:0, B:0
+
+Decode:
+Opcode; A:  4, B:  4
+FunctionType; A:x, B:x
+Primary operand; A: 1, B: 2
+Second operand; A:   10, B:    5
+Reg accesses (pr,pw,sr); A:1,0,0, B:1,0,0
+Enables; A:0, B:0
+
+Reg Read:
+Enable; A:0, B:0
+IsWriteback; A:1 B:1
+Is secondary immediate (0) or reg(1); A:0, B:0
+Reg writeback Address; A: 1, B: 2
+Opcode; A:  4, B:  4
+PrimOperand; A:    1, B:    2
+SecOperand; A:   10, B:    5
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+
+
+Global processor state Registers; PC:     0, RegisterBank:  0, Reset: 0
+
+Fetch:
+Fetched 100000100000010000000000001010100000100000100000000000000101, Enable: 0
+
+Parse:
+Is branch; A:0, B:0
+Format; A:1, B:1
+Opcode; A:  4, B:  4
+Reg; A: 1, B: 2
+Operand; A:   10, B:    5
+Enable; A:0, B:0
+
+Decode:
+Opcode; A:  4, B:  4
+FunctionType; A:x, B:x
+Primary operand; A: 1, B: 2
+Second operand; A:   10, B:    5
+Reg accesses (pr,pw,sr); A:1,0,0, B:1,0,0
+Enables; A:0, B:0
+
+Reg Read:
+Enable; A:0, B:0
+IsWriteback; A:1 B:1
+Is secondary immediate (0) or reg(1); A:0, B:0
+Reg writeback Address; A: 1, B: 2
+Opcode; A:  4, B:  4
+PrimOperand; A:    1, B:    2
+SecOperand; A:   10, B:    5
+
+Reg write:
+wbEnable; A:x, B:x
+WbAddress; A: x, B: x
+WBData; A:    x, B:    x
+
+Arithmatic In:
+Enable A:0 B:0
+IsWriteback; A:x B:x
+Opcode; A:  x, B:  x
+PrimOperand; A:    x, B:    x
+SecOperand; A:    x, B:    x
+WbAddress; A: x, B: x
+
+Branch in:
+enable: 0
+Opcode:   x
+Jump Offset:    x
+Jump Condition:    x
+
+Regframe In:
+enable: 0
+opcode:   x
+
+
+# exit 0

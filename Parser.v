@@ -1,9 +1,9 @@
 `timescale 1ns / 1ps
 `default_nettype none
 module Parser(
-	 input clock_i,
-	 input enable_i,
-    input [59:0] instruction_i,	 
+	 input wire clock_i,
+	 input wire enable_i,
+    input wire [59:0] instruction_i,	 
 	 //2 sets of outputs, one for eac instruction as this is a dual issue machine
 	 output reg isBranch_o1,  				output reg isBranch_o2,
 	 output reg instructionFormat_o1, 	output reg instructionFormat_o2,

@@ -80,12 +80,13 @@ module PA_Core(input wire clock_i,
 	wire [6:0] opCodeExecA, opCodeExecB;
 	wire [15:0] ApOperand, BpOperand;
 	wire [15:0] AsOperand, BsOperand;
+	wire [1:0] functionTypeA_exec, functionTypeB_exec;
 	
 	
 	//exec unit out - reg write in
 	wire wbAFinal, wbBFinal;
-	wire [4:0] wbAddrAFinal, wbAddrBFinal;
-	wire [15:0] wbValAFinal, wbValBFinal;
+	wire [4:0] wbAddrAArithmatic, wbAddrBArithmatic;
+	wire [15:0] wbValAArithmatic, wbValBArithmatic;
 	
 	///register file
 	RegController registers(
@@ -101,6 +102,7 @@ module PA_Core(input wire clock_i,
 	.primOperandA_i(primOperandA), .primOperandB_i(primOperandB),
 	.secOperandA_i(secOperandA), .secOperandB_i(secOperandB),
 	.functionTypeA_i(functionTypeA), .functionTypeB_i(functionTypeB),
+	
 	//data out - to exec units
 	.enableA_o(enableExecA), .enableB_o(enableExecB),
 	.wbA_o(isWbA), .wbB_o(isWbB),
@@ -108,36 +110,91 @@ module PA_Core(input wire clock_i,
 	.opCodeA_o(opCodeExecA), .opCodeB_o(opCodeExecB), 
 	.primOperandA_o(ApOperand), .primOperandB_o(BpOperand),
 	.secOperandA_o(AsOperand), .secOperandB_o(BsOperand),
+	.functionTypeA_o(functionTypeA), .functionTypeB_o(functionTypeB),
 	
 	//inputs to register writeback
 	.wbA_i(wbAFinal), .wbB_i(wbBFinal),
-	.wbAddrA_i(wbAddrAFinal), .wbAddrB_i(wbAddrBFinal),
-	.wbValA_i(wbValAFinal), .bwVAlB_i(wbValBFinal)
+	.wbAddrA_i(wbAddrAArithmatic), .wbAddrB_i(wbAddrBArithmatic),
+	.wbValA_i(wbValAArithmatic), .bwVAlB_i(wbValBArithmatic)
    );
 	
-	///exec units
-	ExecUnit ExecUnitA(
-	//inputs to exec unit
-	.clock_i(clock_i), .isWb_i(isWbA), .enable_i(enableExecA), .reset_i(reset_i),//control
-	.wbAddress_i(regAddrA), .opCode_i(opCodeExecA),//metadata
-	.pOperand_i(ApOperand), .sOperand_i(AsOperand),//data
+	//Dispatch out - Arithmatic in
+	wire arithmaticEnableA_arith, arithmaticEnableB_arith;
+	wire isWbA_arith, isWbB_arith;
+	wire [4:0] wbAddressA_arith, wbAddressB_arith;
+	wire [6:0] opCodeA_arith, opCodeB_arith;
+	wire [15:0] pOperandA_arith, sOperandA_arith, pOperandB_arith, sOperandB_arith;
+	
+	//Dispatch out - Branch in
+	wire branchEnable;
+	wire [6:0] opCode_branch;
+	wire [15:0] pOperand_branch, sOperand_branch;
+	
+	//dispatch out - reg frame in
+	wire enable_regFrame;
+	wire [6:0] opCode_regFrame;
+
+	
+	InstructionDispatch resevationStation(
+	//inputs to the dispatch unit
+	.clock_i(clock_i), .reset_i(reset_i),
+	.isWbA_i(isWbA), .isWbB_i(isWbB), 
+	.enableA_i(enableExecA), .enableB_i(enableExecB),
+	.functionalTypeA_i(functionTypeA_exec), .functionalTypeB_i(functionTypeB_exec),
+	.wbAddressA_i(wbAddrAArithmatic), .wbAddressB_i(wbAddrBArithmatic),
+	.opCodeA_i(opCodeExecA), .opCodeB_i(opCodeExecB), 
+	.pOperandA_i(ApOperand), .sOperandA_i(AsOperand), .pOperandB_i(BpOperand), .sOperandB_i(BsOperand), 
 	.regBankSelect_i(bankSelect),
 	
-	//outputs
-	.wbEnable_o(wbAFinal), .wbAddress_o(wbAddrAFinal), .wbData_o(wbValAFinal),
-	.regBankSelect_o(bankSelect)
+	//outputs to the arithmatic units
+	.arithmaticEnableA_o(arithmaticEnableA_arith), .arithmaticEnableB_o(arithmaticEnableB_arith),
+	.isWbA_o(isWbA_arith), .isWbB_o(isWbB_arith),
+	.wbAddressA_o(wbAddressA_arith), .wbAddressB_o(wbAddressB_arith), 
+	.opCodeA_o(opCodeA_arith), .opCodeB_o(opCodeB_arith), 
+	.pOperandA_o(pOperandA_arith), .sOperandA_o(sOperandA_arith), .pOperandB_o(pOperandB_arith), .sOperandB_o(sOperandB_arith),
+
+	//outputs to the branch unit
+	.branchEnable_o(branchEnable), 
+	.opCode_branch_o(opCode_branch), .pOperand_branch_o(pOperand_branch), .sOperand_branch_o(sOperand_branch),
+	
+	//outputs to the reg frame unit	
+	.regEnable_regUnit_o(enable_regFrame),	.opCode_regUnit_o(opCode_regFrame)
 	);
 	
-	ExecUnit ExecUnitB(
-	//inputs to exec unit
-	.clock_i(clock_i), .isWb_i(isWbB), .enable_i(enableExecB), .reset_i(reset_i),//control
-	.wbAddress_i(regAddrB), .opCode_i(opCodeExecB),//metadata
-	.pOperand_i(BpOperand), .sOperand_i(BsOperand),//data
-	.regBankSelect_i(bankSelect),
-	
+	///exec units
+	ArithmaticUnit ArithmaticA(
+	//inputs
+	.clock_i(clock_i), .isWb_i(isWbA_arith), .enable_i(arithmaticEnableA_arith), 
+	.wbAddress_i(wbAddressA_arith), .opCode_i(opCodeA_arith),
+	.pOperand_i(pOperandA_arith), .sOperand_i(sOperandA_arith),	
 	//outputs
-	.wbEnable_o(wbBFinal), .wbAddress_o(wbAddrBFinal), .wbData_o(wbValBFinal)
-	//.regBankSelect_o(bankSelect)
+	.wbEnable_o(wbAFinal), .wbAddress_o(wbAddrAArithmatic), .wbData_o(wbValAArithmatic)
+	);
+	
+	
+	
+	ArithmaticUnit ArithmaticB(
+	//inputs
+	.clock_i(clock_i), .isWb_i(isWbB_arith), .enable_i(arithmaticEnableB_arith), 
+	.wbAddress_i(wbAddressB_arith), .opCode_i(opCodeB_arith),
+	.pOperand_i(pOperandB_arith), .sOperand_i(sOperandB_arith),	
+	//outputs
+	.wbEnable_o(wbBFinal), .wbAddress_o(wbAddrBArithmatic), .wbData_o(wbValBArithmatic)
+	);
+	
+	BranchUnit branchUnit(
+	//inputs
+	.clock_i(clock_i), .enable_i(branchEnable), .reset_i(reset_i), 
+	.opCode_i(opCode_branch), .pOperand_i(pOperand_branch), .sOperand_i(sOperand_branch),
+	.pc_i(pc), 
+	//outputs
+	.pc_o(pc)
+	);
+	
+	RegisterFrameUnit regFrameUnit(
+	.clock_i(clock_i), .enable_i(enable_regFrame), .reset_i(reset_i),
+	.opCode_i(opCode_regFrame), .regBankSelect_i(bankSelect), 
+	.regBankSelect_o(bankSelect)
 	);
 	
 	
@@ -151,16 +208,16 @@ module PA_Core(input wire clock_i,
 		else
 		begin
 			//$display("\n");
-			pc <= pc + 1;
+			//pc <= pc + 1;
 			wbAFinal_o <= wbAFinal;// wbBFinal_o <= wbBFinal;
-			wbAddrAFinal_o <= wbAddrAFinal;// wbAddrBFinal_o <= wbAddrBFinal;
-			wbValAFinal_o <= wbValAFinal;// wbValBFinal_o <= wbValBFinal;
+			wbAddrAFinal_o <= wbAddrAArithmatic;// wbAddrBFinal_o <= wbAddrBFinal;
+			wbValAFinal_o <= wbValAArithmatic;// wbValBFinal_o <= wbValBFinal;
 			
 		
 		end
 	end
 	
-	/*
+	
 	always@ (negedge clock_i)
 	begin
 	//debug writing out
@@ -189,7 +246,7 @@ module PA_Core(input wire clock_i,
 	//Reg read
 	$display("\nReg Read:\nEnable; A:%b, B:%b", enableExecA, enableExecB);
 	$display("IsWriteback; A:%b B:%b", isWbA, isWbB);
-	$display("Is secondary immediate (0) or reg(1); A:%b, B:%b", sreadA, sreadB);
+	$display("Is secondary immediate (0) or reg(1); A:%b, B:%b", sReadA, sReadB);
 	$display("Reg writeback Address; A:%d, B:%d", regAddrA, regAddrB);
 	$display("Opcode; A:%d, B:%d", opCodeExecA, opCodeExecB);
 	$display("PrimOperand; A:%d, B:%d", ApOperand, BpOperand);
@@ -197,12 +254,32 @@ module PA_Core(input wire clock_i,
 
 	//reg writeback
 	$display("\nReg write:\nwbEnable; A:%b, B:%b", wbAFinal, wbBFinal);
-	$display("WbAddress; A:%d, B:%d", wbAddrAFinal, wbAddrBFinal);
-	$display("WBData; A:%d, B:%d", wbValAFinal, wbValBFinal);
-	$display("\n");
+	$display("WbAddress; A:%d, B:%d", wbAddrAArithmatic, wbAddrBArithmatic);
+	$display("WBData; A:%d, B:%d", wbValAArithmatic, wbValBArithmatic);
+	
 
 	
+	//Dispatch out - Arithmatic in
+	$display("\nArithmatic In:\nEnable A:%b B:%b", arithmaticEnableA_arith, arithmaticEnableB_arith);
+	$display("IsWriteback; A:%b B:%b", isWbA_arith, isWbB_arith);
+	$display("Opcode; A:%d, B:%d", opCodeA_arith, opCodeB_arith);
+	$display("PrimOperand; A:%d, B:%d", pOperandA_arith, pOperandB_arith);
+	$display("SecOperand; A:%d, B:%d", sOperandA_arith, sOperandB_arith);
+	$display("WbAddress; A:%d, B:%d", wbAddressA_arith, wbAddressB_arith);
+
+	//dispatch out - branch in
+	$display("\nBranch in:\nenable: %b", branchEnable);
+	$display("Opcode: %d", opCode_branch);
+	$display("Jump Offset:%d", pOperand_branch);
+	$display("Jump Condition:%d", sOperand_branch);
+	
+	//dispatch out - reg frame in
+	$display("\nRegframe In:\nenable: %b", enable_regFrame);
+	$display("opcode: %d", opCode_regFrame);
+	
+
+	$display("\n");
 	end
-	*/
+	
 	
 endmodule
