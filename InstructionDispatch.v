@@ -9,7 +9,6 @@ module InstructionDispatch(
 		input wire [4:0] wbAddressA_i, wbAddressB_i,
 		input wire [6:0] opCodeA_i, opCodeB_i,
 		input wire [15:0] pOperandA_i, sOperandA_i, pOperandB_i, sOperandB_i,
-		input wire [5:0] regBankSelect_i,
 		
 		//output to arithmatic units - there are 2 arithmatic units
 		output reg arithmaticEnableA_o, arithmaticEnableB_o,
@@ -28,42 +27,143 @@ module InstructionDispatch(
 		output reg regEnable_regUnit_o,		
 		output reg [6:0] opCode_regUnit_o,
 		
+		
 		//outputs to load-store
-		output reg loadEnableA_o, loadEnableB_o,
-		output reg storeEnableA_o, storeEnableB_o
-
+		output reg loadEnable_o, storeEnable_o,
+		output reg isWbLSA_o, isWbLSB_o, lsEnableA_o, lsEnableB_o,
+		output reg [4:0] lsWbAddressA_o, lsWbAddressB_o,
+		output reg [6:0] lsOpCodeA_o, lsOpCodeB_o,
+		output reg [15:0]lsPoperandA_o, lsSoperandA_o, lsPoperandB_o, lsSoperandB_o
+	
     );
-	 
 	 //if this was oo or superscalar the scheduling datastructure would be here
-	 
 	 always @(posedge clock_i)
 	 begin
-			arithmaticEnableA_o <= 0; arithmaticEnableB_o <= 0;
-			branchEnable_o <= 0;
-			loadEnableA_o <= 0;
-			regEnable_regUnit_o <= 0;
-	 
-		 if(enableA_i)
-		 begin			
-			case(functionalTypeA_i)//functionType_o = Arithmatic, Load/Store, Flow control, regfile (0,1,2,3)
-			0:begin arithmaticEnableA_o <= 1; isWbA_o <= isWbA_i; wbAddressA_o <= wbAddressA_i; opCodeA_o <= opCodeA_i; pOperandA_o <= pOperandA_i; sOperandA_o <= sOperandA_i; end//Arithmatic unit invoked
-			1:begin end//load/store unit
-			2:begin branchEnable_o <= 1; opCode_branch_o <= opCodeA_i; pOperand_branch_o <= pOperandA_i; sOperand_branch_o <= sOperandA_i; end//flow control/branch
-			3:begin regEnable_regUnit_o <= 1; opCode_regUnit_o <= opCodeA_i; end//reg stack
-			endcase
+			//setting operands
+			pOperandA_o <= pOperandA_i; sOperandA_o <= sOperandA_i; pOperandB_o <= pOperandB_i; sOperandB_o <= sOperandB_i;//arithmatic
+			lsPoperandA_o <= pOperandA_i; lsSoperandA_o <= sOperandA_i; lsPoperandB_o <= pOperandB_i; lsSoperandB_o <= sOperandB_i;//load store
+			//opcodes
+			opCodeA_o <= opCodeA_i; opCodeB_o <= opCodeB_i;
+			lsOpCodeA_o <= opCodeA_i; lsOpCodeB_o <= opCodeB_i;
+			//writeback addresses
+			wbAddressA_o <= wbAddressA_i; wbAddressB_o <= wbAddressB_i;
+			lsWbAddressA_o <= wbAddressA_i; lsWbAddressB_o <= wbAddressB_i;
+			//iswriteback
+			isWbA_o <= isWbA_i; isWbB_o <= isWbB_i;
+			isWbLSA_o <= isWbA_i; isWbLSB_o <=isWbB_i;
 			
-		 end
-		 
-		 if(enableB_i)
-		 begin			
-			case(functionalTypeB_i)//functionType_o = Arithmatic, Load/Store, Flow control, regfile (0,1,2,3)
-			0:begin arithmaticEnableB_o <= 1; isWbB_o <= isWbB_i; wbAddressB_o <= wbAddressB_i; opCodeB_o <= opCodeB_i; pOperandB_o <= pOperandB_i; sOperandB_o <= sOperandB_i; end//Arithmatic unit invoked
-			1:begin end//load/store unit
-			2:begin branchEnable_o <= 1; opCode_branch_o <= opCodeB_i; pOperand_branch_o <= pOperandB_i; sOperand_branch_o <= sOperandB_i; end//flow control/branch
-			3:begin regEnable_regUnit_o <= 1; opCode_regUnit_o <= opCodeB_i; end//reg stack
-			endcase
+			//branch and reg need inputs buffering in from both pipelines!
+			opCode_branch_o <= opCodeA_i; pOperand_branch_o <= pOperandA_i; sOperand_branch_o <= sOperandA_i;//branch on pipeline A only rn
+			opCode_regUnit_o <= opCodeA_i;//reg unit
 			
-		 end
+			
+			if(((enableA_i == 1) && (functionalTypeA_i == 1)) | ((enableB_i == 1) && (functionalTypeB_i == 1)))//if either A or B pipelines are a load store
+			begin
+				storeEnable_o <= 1;
+				loadEnable_o <= 1;
+			end
+			else
+			begin
+				storeEnable_o <= 0;
+				loadEnable_o <= 0;
+			end
+			
+			if(((enableA_i == 1) && (functionalTypeA_i == 2)) | ((enableB_i == 1) && (functionalTypeB_i == 2)))//if either A or B pipelines are a branch
+				branchEnable_o <= 1;
+			else
+				branchEnable_o <= 0;
+			
+			
+			//setting enables for the units
+			if(enableA_i == 1)
+			begin
+				if(functionalTypeA_i == 0)//arith
+				begin
+					 arithmaticEnableA_o <= enableA_i;
+					 
+					 //storeEnable_o <= 0;
+					 //loadEnable_o <= 0;
+					 lsEnableA_o <= 0;
+					 
+					 branchEnable_o <= 0;
+					 regEnable_regUnit_o <= 0;
+				end
+				else if(functionalTypeA_i == 1)//load store
+				begin
+					arithmaticEnableA_o <= 0;
+					
+					//storeEnable_o <= enableA_i;
+					//loadEnable_o <= enableA_i;
+					lsEnableA_o <= enableA_i;
+					
+					branchEnable_o <= 0;
+					regEnable_regUnit_o <= 0;
+				end
+				else if(functionalTypeA_i == 2)//branch
+				begin
+					arithmaticEnableA_o <= 0;
+					
+					//storeEnable_o <= 0;
+					//loadEnable_o <= 0;
+					lsEnableA_o <= 0;
+					
+					branchEnable_o <= enableA_i;
+					regEnable_regUnit_o <= 0;
+				end
+				else if(functionalTypeA_i == 3)//reg
+				begin
+					arithmaticEnableA_o <= 0;
+					
+					//loadEnable_o <= 0;
+					//storeEnable_o <= 0;
+					lsEnableA_o <= 0;
+					
+					branchEnable_o <= 0;
+					regEnable_regUnit_o <= enableA_i;
+				end
+			end
+			
+			if(enableB_i == 1)
+			begin
+				if(functionalTypeB_i == 0)//arith
+				begin
+					 arithmaticEnableB_o <= enableB_i;
+					 
+					 //storeEnable_o <= 0;
+					 //loadEnable_o <= 0;
+					 lsEnableB_o <= 0;
+					 
+				end
+				else if(functionalTypeB_i == 1)//load store
+				begin
+					arithmaticEnableB_o <= 0;
+					
+					//storeEnable_o <= enableB_i;
+					//loadEnable_o <= enableB_i;
+					lsEnableB_o <= enableB_i;
+					
+				end
+				
+				else if(functionalTypeB_i == 2)//branch
+				begin
+					arithmaticEnableB_o <= 0;
+					
+					//storeEnable_o <= 0;
+					//loadEnable_o <= 0;
+					lsEnableB_o <= 0;
+									
+				end
+				else if(functionalTypeB_i == 3)//reg
+				begin
+					arithmaticEnableB_o <= 0;
+					
+					//storeEnable_o <= 0;
+					//loadEnable_o <= 0;
+					lsEnableB_o <= 0;
+					
+				end
+			end	
+
 	 end
 
 

@@ -1,3 +1,4 @@
+*
 *.o
 *.tcl
 *.gise
@@ -7,4 +8,7 @@
 *.wdb
 *.log
 *.cmd
+*.xmsgs
 
+!*.v
+!*.ucf

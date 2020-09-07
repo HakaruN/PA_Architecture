@@ -20,10 +20,15 @@ module RegController(
 	output reg [15:0] secOperandA_o, secOperandB_o,
 	output reg [1:0] functionTypeA_o, functionTypeB_o,
 	
-	//inputs to register writeback
-	input wire wbA_i, wbB_i,
-	input wire [4:0] wbAddrA_i, wbAddrB_i,
-	input wire [15:0] wbValA_i, bwVAlB_i
+	//inputs to register writeback (Arithmatic)
+	input wire wbA_arith_i, wbB_arith_i,
+	input wire [4:0] wbAddrA_arith_i, wbAddrB_arith_i,
+	input wire [15:0] wbValA_arith_i, wbVAlB_arith_i,
+	
+	//inputs to register writeback (LoadStore)
+	input wire wbA_ls_i, wbB_ls_i,
+	input wire [4:0] wbAddrA_ls_i, wbAddrB_ls_i,
+	input wire [15:0] wbValA_ls_i, bwVAlB_ls_i
    );
 	
 	
@@ -52,19 +57,21 @@ module RegController(
 	.readAPortData2_o(secOperandA), .readBPortData2_o(secOperandB),
 	
 	//writeback inputs (From exec units)
-	.writeEnablePortA_i(wbA_i), .writeEnablePortB_i(wbB_i),
-	.writeAPortAddr_i(wbAddrA_i), .writeBPortAddr_i(wbAddrB_i),
-	.writeAPortData_i(wbValA_i), .writeBPortData_i(bwVAlB_i)	
+	.writeEnablePortA_i(wbA_arith_i), .writeEnablePortB_i(wbB_arith_i),
+	.writeAPortAddr_i(wbAddrA_arith_i), .writeBPortAddr_i(wbAddrB_arith_i),
+	.writeAPortData_i(wbValA_arith_i), .writeBPortData_i(wbVAlB_arith_i),
+	
+	//writeback from store unit
+	.wbALoadStore_i(wbA_ls_i), .wbBLoadStore_i(wbB_ls_i),
+	.wbAAddrLS_i(wbAddrA_ls_i), .wbBAddrLS_i(wbAddrB_ls_i),
+	.wbADatLS_i(wbValA_ls_i), .wbBDatLS_i(bwVAlB_ls_i)
 	);
-
-	 
 	 
 	 always @(posedge clock_i)
 	 begin
 		//pass through the enables
 		enableA_o <= enableA;
 		enableA <= enableA_i; 
-		
 		if(enableA)//outputs
 		begin
 			//passing the buffered data to the exec stage

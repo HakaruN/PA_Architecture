@@ -37,42 +37,36 @@ module coreTest;
 	PA_Core uut (
 		.clock_i(clock_i), 
 		.reset_i(reset_i), 
-		.wbAFinal_o(wbAFinal_o), 
+		.wbAArith_o(wbAFinal_o), 
 		.wbAddrAFinal_o(wbAddrAFinal_o), 
 		.wbValAFinal_o(wbValAFinal_o)
 	);
 integer i;
+parameter NUM_CLOCK_CYCLES = 15;
 	initial begin
 		// Initialize Inputs
-		clock_i = 0;
-		reset_i = 0;
-
+		reset_i = 1;
+		clock_i = 1;
 		// Wait 100 ns for global reset to finish
 		#100;
-		
+		clock_i = 0;
+		clock_i = 0;
+		/*
 		reset_i = 1;
 		clock_i = 1;
 		#1;
 		clock_i = 0;
+		#1;
 		reset_i = 0;
+*/
 		
-		#1;
-		clock_i = 1;
-		#1;
-		clock_i = 0;
-
-		
-		for(i = 0; i < 10; i = i + 1)
+		for(i = 0; i < NUM_CLOCK_CYCLES; i = i + 1)
 		begin
 			#1;
 			clock_i = 1;
 			#1;
 			clock_i = 0;
 		end
-		
-        
-		// Add stimulus here
-
 	end
       
 endmodule

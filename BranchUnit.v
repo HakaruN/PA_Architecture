@@ -22,10 +22,10 @@ module BranchUnit(
 		begin			
 			case(opCode_i)
 			//need conditonal branches and unconditional branch
-			8: begin if(sOperand_i > 0) begin pc_o <= (pc_i - 5) - pOperand_i; end; end//conditional branch-backwards Jump offset by the primary on the condition of the secondary
-			9: begin if(sOperand_i > 0) begin pc_o <= (pc_i - 5) + pOperand_i; end; end//conditional branch-forwards Jump offset by the primary on the condition of the secondary
-			10: begin pc_o <= (pc_i - 5) - pOperand_i; end//unconditional branch-backwards Jump offset by the primary
-			11: begin pc_o <= (pc_i - 5) + pOperand_i; end//unconditional branch-forwards Jump offset by the primary
+			7: begin if(sOperand_i > 0) begin pc_o <= pc_i + pOperand_i; end end//conditional branch-backwards Jump offset by the primary on the condition of the secondary
+			8: begin pc_o <= pc_i + pOperand_i; end//conditional branch-forwards Jump offset by the primary on the condition of the secondary
+			9: begin if(sOperand_i > 0) begin pc_o <= pc_i - pOperand_i; end end//unconditional branch-backwards Jump offset by the primary
+			10: begin pc_o <= pc_i - pOperand_i; end//unconditional branch-forwards Jump offset by the primary
 			endcase
 			
 		end

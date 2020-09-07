@@ -6,10 +6,17 @@ module RegisterFile(
 	
 	input wire [5:0] bankSelect_i,//this allows for a bank to be selected and it offsets the read/writes into a different group of 32 registers
 
+	//reg writes from arithmatic writebacks
 	input wire writeEnablePortA_i, writeEnablePortB_i,//write enables for port A and B	
 	input wire [4:0] writeAPortAddr_i, writeBPortAddr_i,//port address lines for writing to registers
 	input wire [15:0] writeAPortData_i, writeBPortData_i,//port data lines for writing to registers
+	
+	//reg writes from store unit
+	input wire wbALoadStore_i, wbBLoadStore_i,//write enables for port A and B	
+	input wire [4:0] wbAAddrLS_i, wbBAddrLS_i,//port address lines for writing to registers
+	input wire [15:0] wbADatLS_i, wbBDatLS_i,//port data lines for writing to registers
 
+	//arithmatic reads from execution units
 	input wire readAPrimary_i, readBPrimary_i,//read enables for read-bus 1
 	input wire readASecondary_i, readBSecondary_i,//read enables for read-bus 2
 	input wire [4:0] readAPortAddr1_i, readBPortAddr1_i,//read address for bus 1
@@ -19,20 +26,21 @@ module RegisterFile(
 	
     );
 
-parameter NUM_REGISTERS_PER_BANK = 32;
-parameter NUM_REG_BANKS = 4;
+parameter NUM_REGISTERS_PER_BANK = 28;
+parameter NUM_REG_BANKS = 3;
 reg [15:0] regFile [(NUM_REGISTERS_PER_BANK * NUM_REG_BANKS)-1:0];//512 16bit registers, each register window has 32 registers so we can have 10 stack frames/processes/programs with registers allocated at once
 
 integer i;
 	always @(posedge clock_i)
 	begin
+		$display("selected bank: %d", bankSelect_i);
 		if(reset_i)
 		begin
 			//$display("Reg reset");
 			for(i = 0; i < NUM_REGISTERS_PER_BANK * NUM_REG_BANKS; i = i + 1)
 			begin
 				//regFile[i] <= 16'd0;//when reset, all of the registers are to be reset to a value of zero
-				regFile[i] <= i + 2;
+				regFile[i] <= 0;
 			end
 		end
 	
@@ -60,7 +68,7 @@ integer i;
 		else 
 			readBPortData2_o <= readBPortAddr2_i;	
 		
-		//write
+		//write - reg writeback
 		//port A
 		if(writeEnablePortA_i)
 		begin
@@ -70,7 +78,17 @@ integer i;
 		if(writeEnablePortB_i)
 		begin
 			regFile[(bankSelect_i * NUM_REGISTERS_PER_BANK) + writeBPortAddr_i] <= writeBPortData_i;
-		end		
+		end	
 		
+		
+		//write - store unit
+		if(wbALoadStore_i)
+		begin
+			regFile[(bankSelect_i * NUM_REGISTERS_PER_BANK) + wbAAddrLS_i] <= wbADatLS_i;
+		end
+		if(wbBLoadStore_i)
+		begin
+			regFile[(bankSelect_i * NUM_REGISTERS_PER_BANK) + wbBAddrLS_i] <= wbBDatLS_i;
+		end		
 	end
 endmodule
