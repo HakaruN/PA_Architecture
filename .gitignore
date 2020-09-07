@@ -1,0 +1,10 @@
+*.o
+*.tcl
+*.gise
+*.xise
+*.exe
+*.prj
+*.wdb
+*.log
+*.cmd
+
