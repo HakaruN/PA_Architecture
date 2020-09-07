@@ -1,1 +1,0 @@
--intstyle "ise" -incremental -lib "unisims_ver" -lib "unimacro_ver" -lib "xilinxcorelib_ver" -o "/home/hakaru/Projects/Verilog/PA_Architecture/PA_Architecture/coreTest_isim_beh.exe" -prj "/home/hakaru/Projects/Verilog/PA_Architecture/PA_Architecture/coreTest_beh.prj" "work.coreTest" "work.glbl" 
