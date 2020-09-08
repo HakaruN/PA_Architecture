@@ -1,39 +1,27 @@
 //P101
-NET "reset_i" LOC = P4;
+NET "reset_i" LOC = P"101";
 //P184
-NET "clock_i" LOC = P9;
+NET "clock_i" LOC = P"184";
 
-NET "wbValAFinal_o[0]" LOC = P61;
-NET "wbValAFinal_o[1]" LOC = P60;
-//NET "wbValAFinal_o[2]"  LOC ="p55";
-NET "wbValAFinal_o[3]" LOC = P50;
-NET "wbValAFinal_o[4]" LOC = P49;
-NET "wbValAFinal_o[5]" LOC = P48;
-NET "wbValAFinal_o[6]" LOC = P47;
-//NET "wbValAFinal_o[7]"  LOC ="p45";
-NET "wbValAFinal_o[8]" LOC = P42;
-NET "wbValAFinal_o[9]" LOC = P41;
-NET "wbValAFinal_o[10]" LOC = P40;
-NET "wbValAFinal_o[11]" LOC = P39;
-NET "wbValAFinal_o[12]" LOC = P36;
-NET "wbValAFinal_o[13]" LOC = P35;
-NET "wbValAFinal_o[14]" LOC = P34;
-NET "wbValAFinal_o[15]" LOC = P33;
 
-NET "wbAddrAFinal_o[0]" LOC = P68;
-NET "wbAddrAFinal_o[1]" LOC = P78;
-NET "wbAddrAFinal_o[2]" LOC = P83;
-NET "wbAddrAFinal_o[3]" LOC = P89;
+NET "wbValAFinal_o[0]" LOC = "P61";
+NET "wbValAFinal_o[1]" LOC = "P60";
+NET "wbValAFinal_o[2]"  LOC ="p55;
+NET "wbValAFinal_o[3]" LOC = "P50";
+NET "wbValAFinal_o[4]" LOC = "P49";
+NET "wbValAFinal_o[5]" LOC = "P48";
+NET "wbValAFinal_o[6]" LOC = "P47";
+NET "wbValAFinal_o[7]"  LOC ="p45";
+NET "wbValAFinal_o[8]" LOC = "P42";
+NET "wbValAFinal_o[9]" LOC = "P41";
+NET "wbValAFinal_o[10]" LOC = "P40";
+NET "wbValAFinal_o[11]" LOC = "P39";
+NET "wbValAFinal_o[12]" LOC = "P36";
+NET "wbValAFinal_o[13]" LOC = "P35";
+NET "wbValAFinal_o[14]" LOC = "P34";
+NET "wbValAFinal_o[15]" LOC = "P33";
 
-# PlanAhead Generated physical constraints 
-
-INST "registers" AREA_GROUP = "pblock_registers";
-INST "instructionDispatch" AREA_GROUP = "pblock_instructionDispatch";
-INST "decodeUnit_1" AREA_GROUP = "pblock_decodeUnit_1";
-INST "decodeUnit_2" AREA_GROUP = "pblock_decodeUnit_2";
-INST "loadStore" AREA_GROUP = "pblock_loadStore";
-INST "parseUnit" AREA_GROUP = "pblock_parseUnit";
-INST "branchUnit" AREA_GROUP = "pblock_branchUnit";
-INST "ArithmaticA" AREA_GROUP = "pblock_ArithmaticA";
-INST "ArithmaticB" AREA_GROUP = "pblock_ArithmaticB";
-INST "fetch" AREA_GROUP = "pblock_fetch";
+NET "wbAddrAFinal_o[0]" LOC = "P68";
+NET "wbAddrAFinal_o[1]" LOC = "P78";
+NET "wbAddrAFinal_o[2]" LOC = "P83";
+NET "wbAddrAFinal_o[3]" LOC = "P89";
