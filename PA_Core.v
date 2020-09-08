@@ -28,10 +28,11 @@ module PA_Core(input wire clock_i,
 	wire [5:0] bankSelect;//what bank of registers to use (hardcoded to 0 for now)
 	wire [59:0] fetchBuffer;//the buffer where fetched instructions are written to
 	wire fetchEnable;//output enable from the fetch unit
+	wire flushBack;//flush line that indicates all pipelines before the branch unit are to flush the stages
 	
 	
 	
-	Fetch fetch(.clock_i(clock_i), .reset_i(reset_i), .PC(pc) , .data_o(fetchBuffer), .enable_o(fetchEnable));
+	Fetch fetch(.clock_i(clock_i), .reset_i(reset_i), .flushBack_i(flushBack), .PC(pc) , .data_o(fetchBuffer), .enable_o(fetchEnable));
 
 	//parse out - decode in
 	wire isBranch_1, isBranch_2;
@@ -44,7 +45,7 @@ module PA_Core(input wire clock_i,
 
 	
 	//first stage of the decode unit (more accuratly a parser, it parses 2 instructions per cycle)
-	Parser parseUnit(.clock_i(clock_i), .enable_i(fetchEnable), .instruction_i(fetchBuffer),
+	Parser parseUnit(.clock_i(clock_i), .enable_i(fetchEnable), .instruction_i(fetchBuffer), .flushBack_i(flushBack),
 	.isBranch_o1(isBranch_1), .isBranch_o2(isBranch_2),
 	.instructionFormat_o1(instructionFormat_1), .instructionFormat_o2(instructionFormat_2),
 	.opcode_o1(opCode_1), .opcode_o2(opCode_2),
@@ -61,17 +62,17 @@ module PA_Core(input wire clock_i,
 	wire decodeOEnableA, decodeOEnableB;
 	
 	///decode units
-	Decode decodeUnit_1(.clock_i(clock_i), .enable_i(decode1Enabled_1), .isBranch_i(isBranch_1), 
+	Decode decodeUnit_1(.clock_i(clock_i), .enable_i(decode1Enabled_1), .flushBack_i(flushBack), .isBranch_i(isBranch_1), 
 	.instructionFormat_i(instructionFormat_1), .opcode_i(opCode_1), .primOperand_i(primReg_1), .secOperand_i(operand_1),
 	.opcode_o(opcodeA), .functionType_o(functionTypeA), .primOperand_o(primOperandA), .secOperand_o(secOperandA),
 	.pWrite_o(pWriteA), .pRead_o(pReadA), .sRead_o(sReadA), .enable_o(decodeOEnableA));
 	
-	Decode decodeUnit_2(.clock_i(clock_i), .enable_i(decode1Enabled_2), .isBranch_i(isBranch_2), 
+	Decode decodeUnit_2(.clock_i(clock_i), .enable_i(decode1Enabled_2), .flushBack_i(flushBack), .isBranch_i(isBranch_2), 
 	.instructionFormat_i(instructionFormat_2), .opcode_i(opCode_2), .primOperand_i(primReg_2), .secOperand_i(operand_2),
 	.opcode_o(opcodeB), .functionType_o(functionTypeB), .primOperand_o(primOperandB), .secOperand_o(secOperandB),
 	.pWrite_o(pWriteB), .pRead_o(pReadB), .sRead_o(sReadB), .enable_o(decodeOEnableB));
 	
-	//Reg read out- exec unit in
+	//Reg read out - exec unit in
 	wire enableExecA, enableExecB;//enables for the exec units
 	wire isWbA, isWbB;//writeback flags
 	wire [4:0] regAddrA, regAddrB;//register address to writeback to
@@ -79,12 +80,14 @@ module PA_Core(input wire clock_i,
 	wire [15:0] ApOperand, BpOperand;
 	wire [15:0] AsOperand, BsOperand;
 	wire [1:0] functionTypeA_exec, functionTypeB_exec;
+	wire [1:0] operationStatusA_exec, operationStatusB_exec;
 	
 	
 	//arithmatic unit out - reg write in
 	wire wbAArith, wbBArith;
 	wire [4:0] wbAddrAArithmatic, wbAddrBArithmatic;
 	wire [15:0] wbValAArithmatic, wbValBArithmatic;
+	wire [1:0] statusWritebackA, statusWritebackB;
 	
 	//load/store unit out - reg write in
 	wire wbALoadStore, wbBLoadStore;
@@ -104,6 +107,7 @@ module PA_Core(input wire clock_i,
 	.opcodeA_i(opcodeA), .opcodeB_i(opcodeB),
 	.primOperandA_i(primOperandA), .primOperandB_i(primOperandB),
 	.secOperandA_i(secOperandA), .secOperandB_i(secOperandB),
+	.flushBack_i(flushBack),
 	.functionTypeA_i(functionTypeA), .functionTypeB_i(functionTypeB),
 	
 	//data out - to reservation station
@@ -114,11 +118,13 @@ module PA_Core(input wire clock_i,
 	.primOperandA_o(ApOperand), .primOperandB_o(BpOperand),
 	.secOperandA_o(AsOperand), .secOperandB_o(BsOperand),
 	.functionTypeA_o(functionTypeA_exec), .functionTypeB_o(functionTypeB_exec),
+	.operationStatusA_o(operationStatusA_exec), .operationStatusB_o(operationStatusB_exec),
 	
 	//inputs to register writeback from arithmatic
 	.wbA_arith_i(wbAArith), .wbB_arith_i(wbBArith),
 	.wbAddrA_arith_i(wbAddrAArithmatic), .wbAddrB_arith_i(wbAddrBArithmatic),
 	.wbValA_arith_i(wbValAArithmatic), .wbVAlB_arith_i(wbValBArithmatic),
+	.operationStatusA_i(statusWritebackA), .operationStatusB_i(statusWritebackB),
 	
 	//inputs to register writeback from loadStore unit	
 	.wbA_ls_i(wbALoadStore), .wbB_ls_i(wbBLoadStore),
@@ -135,6 +141,7 @@ module PA_Core(input wire clock_i,
 	
 	//Dispatch out - Branch unit in
 	wire branchEnable;
+	wire [1:0] opStat_branch;
 	wire [6:0] opCode_branch;
 	wire [15:0] pOperand_branch, sOperand_branch;
 	
@@ -160,7 +167,9 @@ module PA_Core(input wire clock_i,
 	.wbAddressA_i(regAddrA), .wbAddressB_i(regAddrB),
 	.opCodeA_i(opCodeExecA), .opCodeB_i(opCodeExecB), 
 	.pOperandA_i(ApOperand), .sOperandA_i(AsOperand), .pOperandB_i(BpOperand), .sOperandB_i(BsOperand), 
-		
+	.operationStatusA_i(operationStatusA_exec), .operationStatusB_i(operationStatusB_exec),
+
+	.flushBack_i(flushBack),
 	
 	//outputs to the arithmatic units
 	.arithmaticEnableA_o(arithmaticEnableA_arith), .arithmaticEnableB_o(arithmaticEnableB_arith),
@@ -171,6 +180,7 @@ module PA_Core(input wire clock_i,
 
 	//outputs to the branch unit
 	.branchEnable_o(branchEnable), 
+	.opStat_branch_o(opStat_branch),
 	.opCode_branch_o(opCode_branch), .pOperand_branch_o(pOperand_branch), .sOperand_branch_o(sOperand_branch),
 	
 	//outputs to the reg frame unit	
@@ -191,7 +201,8 @@ module PA_Core(input wire clock_i,
 	.wbAddress_i(wbAddressA_arith), .opCode_i(opCodeA_arith),
 	.pOperand_i(pOperandA_arith), .sOperand_i(sOperandA_arith),	
 	//outputs
-	.wbEnable_o(wbAArith), .wbAddress_o(wbAddrAArithmatic), .wbData_o(wbValAArithmatic)
+	.wbEnable_o(wbAArith), .wbAddress_o(wbAddrAArithmatic), .wbData_o(wbValAArithmatic),
+	.statusWriteback_o(statusWritebackA)//bits 3 and 2 go to the arithmatic unit A
 	);
 	
 	ArithmaticUnit ArithmaticB(
@@ -200,13 +211,15 @@ module PA_Core(input wire clock_i,
 	.wbAddress_i(wbAddressB_arith), .opCode_i(opCodeB_arith),
 	.pOperand_i(pOperandB_arith), .sOperand_i(sOperandB_arith),	
 	//outputs
-	.wbEnable_o(wbBArith), .wbAddress_o(wbAddrBArithmatic), .wbData_o(wbValBArithmatic)
+	.wbEnable_o(wbBArith), .wbAddress_o(wbAddrBArithmatic), .wbData_o(wbValBArithmatic),
+	.statusWriteback_o(statusWritebackB)//bits 1 and 0 go to the arithmatic unit B
 	);
 	
 	BranchUnit branchUnit(
 	//inputs
-	.clock_i(clock_i), .enable_i(branchEnable), .reset_i(reset_i), 
-	.opCode_i(opCode_branch), .pOperand_i(pOperand_branch), .sOperand_i(sOperand_branch),
+	.clock_i(clock_i), .enable_i(branchEnable), .reset_i(reset_i),
+	.opCode_i(opCode_branch), .pOperand_i(pOperand_branch), .sOperand_i(sOperand_branch), 
+	.flushBack_i(flushBack), .flushBack_o(flushBack), .opStat_i(opStat_branch),
 	.pc_i(pc), 
 	//outputs
 	.pc_o(pc)
@@ -236,28 +249,35 @@ module PA_Core(input wire clock_i,
 			wbAArith_o <= wbAArith;// wbBFinal_o <= wbBFinal;
 			wbAddrAFinal_o <= wbAddrAArithmatic;// wbAddrBFinal_o <= wbAddrBFinal;
 			wbValAFinal_o <= wbValAArithmatic;// wbValBFinal_o <= wbValBFinal;
+			
+			if(reset_i)
+			begin
+				wbAArith_o <= 0;
+				wbAddrAFinal_o <= 0;
+				wbValAFinal_o <= 0;
+			end
 	end
 	
-	
+	/*
 	always@ (negedge clock_i)
 	begin
 	//debug writing out
 	
 	$display("\n");
 	$display("Global processor state Registers; PC: %d, RegisterBank: %d, Reset: %b", pc, bankSelect, reset_i);
-	/*
+	
 	//fetch debug
 	$display("\nFetch:\nFetched %b, Enable: %b", fetchBuffer, fetchEnable);
 	
 	//parse debug
 	$display("\nParse:\nIs branch; A:%d, B:%d", isBranch_1, isBranch_2);
-	$display("Format; A:%d, B:%d", instructionFormat_1, instructionFormat_2);
+	$display("Format (0 = reg-reg, 1 = reg-imm); A:%d, B:%d", instructionFormat_1, instructionFormat_2);
 	$display("Opcode; A:%d, B:%d", opCode_1, opCode_2);
 	$display("Reg; A:%d, B:%d", primReg_1, primReg_2);
 	$display("Operand; A:%d, B:%d", operand_1, operand_2);
 	$display("Enable; A:%b, B:%b", decode1Enabled_1, decode1Enabled_2);
 	
-	//Decode debug
+	//Decode out - reg in
 	$display("\nDecode:\nOpcode; A:%d, B:%d", opcodeA, opcodeB);
 	$display("FunctionType; A:%d, B:%d", functionTypeA, functionTypeB);
 	$display("Primary operand; A:%d, B:%d", primOperandA, primOperandB);
@@ -265,7 +285,7 @@ module PA_Core(input wire clock_i,
 	$display("Reg accesses (pw,pr,sr); A:%d,%d,%d, B:%d,%d,%d", pWriteA, pReadA, sReadA, pWriteB, pReadB, sReadB);
 	$display("Enables; A:%d, B:%d", decodeOEnableA, decodeOEnableB);
 	
-	//Reg read
+	//Reg read out - dispatch in
 	$display("\nReg Read:\nEnable; A:%b, B:%b", enableExecA, enableExecB);
 	$display("IsWriteback; A:%b B:%b", isWbA, isWbB);
 	$display("Is secondary immediate (0) or reg(1); A:%b, B:%b", sReadA, sReadB);
@@ -274,6 +294,7 @@ module PA_Core(input wire clock_i,
 	$display("PrimOperand; A:%d, B:%d", ApOperand, BpOperand);
 	$display("SecOperand; A:%d, B:%d", AsOperand, BsOperand);
 	$display("Function type; A:%d, B:%d", functionTypeA_exec, functionTypeB_exec);
+	$display("Reg file overflow, underflow; A:%b,%b B:%b,%b",operationStatusA_exec[1], operationStatusA_exec[0], operationStatusB_exec[1], operationStatusB_exec[0]);
 
 	
 	//Dispatch out - Arithmatic in
@@ -310,9 +331,11 @@ module PA_Core(input wire clock_i,
 	$display("\nReg write (store):\nwbEnable; A:%b, B:%b", wbALoadStore, wbBLoadStore);
 	$display("WbAddress; A:%d, B:%d", wbAddrALoadStore, wbAddrBLoadStore);
 	$display("WBData; A:%d, B:%d", wbValALoadStore, wbValBLoadStore);
-	*/
+	$display("Is overflow; A:%b B:%b",statusWritebackA[1], statusWritebackB[1]);
+	$display("Is underflow; A:%b, B:%b",statusWritebackA[0], statusWritebackB[0]);
+	
 	$display("\n");	
 	end
-	
+	*/
 	
 endmodule

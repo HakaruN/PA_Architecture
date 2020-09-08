@@ -21,8 +21,6 @@ begin
 	end
 	else if(enable_i)
 	begin	
-		$display("Regiser bank change");
-		$display("Reg bank at: %d, Opcode %d", selectedRegisterBank, opCode_i);
 		if(opCode_i == 11)
 		begin
 			selectedRegisterBank <= selectedRegisterBank + 1;

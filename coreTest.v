@@ -42,14 +42,14 @@ module coreTest;
 		.wbValAFinal_o(wbValAFinal_o)
 	);
 integer i;
-parameter NUM_CLOCK_CYCLES = 15;
+parameter NUM_CLOCK_CYCLES = 25;
 	initial begin
 		// Initialize Inputs
 		reset_i = 1;
 		clock_i = 1;
 		// Wait 100 ns for global reset to finish
 		#100;
-		clock_i = 0;
+		reset_i = 0;
 		clock_i = 0;
 		/*
 		reset_i = 1;
