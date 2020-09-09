@@ -13,7 +13,7 @@ module Fetch(
 	 //input wire stall_i,
 	 
 	 //output to parse unit (stage 1)
-	 output reg [15:0] pc_o,
+	 /*output reg [15:0] pc_o,*/
     output reg [59:0] data_o,
     output reg enable_o
     );
@@ -70,6 +70,6 @@ module Fetch(
 				//could add a stall notice, if there is a stall, halt fetching
 			end
 		end
-		pc_o <= PC;
+		/*pc_o <= PC;*/
 	end
 endmodule
