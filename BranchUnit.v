@@ -8,6 +8,8 @@ module BranchUnit(
 	input wire [15:0] pc_i,
 	input wire flushBack_i,
 	input wire [1:0] opStat_i,//[1] = overflow, [0] = underflow
+	//if pipeline stalled, dont increment pc
+	input wire isStalled_i,
 	
 	output reg flushBack_o,
 	output reg [15:0] pc_o
@@ -21,7 +23,12 @@ module BranchUnit(
 			flushBack_o <= 0;
 		end
 		else
-			pc_o <= pc_i + 1;//increment the pc
+		begin
+			if(isStalled_i == 0)
+			begin
+				pc_o <= pc_i + 1;//increment the pc
+			end
+		end
 			
 		
 		

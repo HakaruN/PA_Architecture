@@ -7,16 +7,10 @@ module LoadStore(
 		input wire [6:0] opCodeA_i, opCodeB_i,
 		input wire [15:0] pOperandA_i, sOperandA_i,pOperandB_i, sOperandB_i,
 		
-		
-
-		
-		
 		output reg wbEnableA_o, wbEnableB_o,
 		output reg [4:0] wbAddressA_o, wbAddressB_o, 
 		output reg [15:0] wbDataA_o, wbDataB_o
-    );
-	 
-	 
+    );	 
 	 //data cache
 	 parameter numCachelines = 8; parameter cachlinewidth = 16; parameter sizeOfAByte = 8;
 	 //reg [(cachlinewidth * sizeOfAByte) - 1:0] dCache [numCachelines -1 :0];//128 entry i-cache where each cacheline is 50 bits wide (1 instruction)

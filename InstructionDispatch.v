@@ -90,7 +90,8 @@ module InstructionDispatch(
 				begin
 					storeEnable_o <= 0;
 					loadEnable_o <= 0;
-				end
+				end				
+				
 				
 				if(((enableA_i == 1) && (functionalTypeA_i == 2)) | ((enableB_i == 1) && (functionalTypeB_i == 2)))//if either A or B pipelines are a branch
 					branchEnable_o <= 1;
@@ -99,98 +100,74 @@ module InstructionDispatch(
 					opStat_branch_o <= 0;//if neither pipeline are branch, dont care about the op status
 					branchEnable_o <= 0;
 				end
-					
 				
-				
-				//setting enables for the units
-				if(enableA_i == 1)
+				//if both pipelines are active and are branches, discard the instruction	
+				if(((enableA_i == 1) && (functionalTypeA_i == 2)) && ((enableB_i == 1) && (functionalTypeB_i == 2)))//if either A or B pipelines are a branch
+					branchEnable_o <= 0;
+				else//else no branch hazard
 				begin
-					if(functionalTypeA_i == 0)//arith
-					begin
-						 arithmaticEnableA_o <= enableA_i;
-						 
-						 //storeEnable_o <= 0;
-						 //loadEnable_o <= 0;
-						 lsEnableA_o <= 0;
-						 
-						 branchEnable_o <= 0;
-						 regEnable_regUnit_o <= 0;
-					end
-					else if(functionalTypeA_i == 1)//load store
-					begin
-						arithmaticEnableA_o <= 0;
-						
-						//storeEnable_o <= enableA_i;
-						//loadEnable_o <= enableA_i;
-						lsEnableA_o <= enableA_i;
-						
-						branchEnable_o <= 0;
-						regEnable_regUnit_o <= 0;
-					end
-					else if(functionalTypeA_i == 2)//branch
-					begin
-						arithmaticEnableA_o <= 0;
-						opStat_branch_o <= operationStatusA_i;//if pipeline A has teh branch, status for pipeline A goes to the branch
-						//storeEnable_o <= 0;
-						//loadEnable_o <= 0;
-						lsEnableA_o <= 0;
-						
-						branchEnable_o <= enableA_i;
-						regEnable_regUnit_o <= 0;
-					end
-					else if(functionalTypeA_i == 3)//reg
-					begin
-						arithmaticEnableA_o <= 0;
-						
-						//loadEnable_o <= 0;
-						//storeEnable_o <= 0;
-						lsEnableA_o <= 0;
-						
-						branchEnable_o <= 0;
-						regEnable_regUnit_o <= enableA_i;
-					end
-				end
 				
-				if(enableB_i == 1)
-				begin
-					if(functionalTypeB_i == 0)//arith
+					//setting enables for the units
+					if(enableA_i == 1)
 					begin
-						 arithmaticEnableB_o <= enableB_i;
-						 
-						 //storeEnable_o <= 0;
-						 //loadEnable_o <= 0;
-						 lsEnableB_o <= 0;
-						 
-					end
-					else if(functionalTypeB_i == 1)//load store
-					begin
-						arithmaticEnableB_o <= 0;
-						
-						//storeEnable_o <= enableB_i;
-						//loadEnable_o <= enableB_i;
-						lsEnableB_o <= enableB_i;
-						
+						if(functionalTypeA_i == 0)//arith
+						begin
+							 arithmaticEnableA_o <= enableA_i;
+							 lsEnableA_o <= 0;
+							 branchEnable_o <= 0;
+							 regEnable_regUnit_o <= 0;
+						end
+						else if(functionalTypeA_i == 1)//load store
+						begin
+							arithmaticEnableA_o <= 0;						
+							lsEnableA_o <= enableA_i;
+							branchEnable_o <= 0;
+							regEnable_regUnit_o <= 0;
+						end
+						else if(functionalTypeA_i == 2)//branch
+						begin
+							arithmaticEnableA_o <= 0;
+							opStat_branch_o <= operationStatusA_i;//if pipeline A has teh branch, status for pipeline A goes to the branch
+							lsEnableA_o <= 0;
+							
+							branchEnable_o <= enableA_i;
+							regEnable_regUnit_o <= 0;
+						end
+						else if(functionalTypeA_i == 3)//reg
+						begin
+							arithmaticEnableA_o <= 0;
+							lsEnableA_o <= 0;
+							branchEnable_o <= 0;
+							regEnable_regUnit_o <= enableA_i;
+						end
 					end
 					
-					else if(functionalTypeB_i == 2)//branch
+					if(enableB_i == 1)
 					begin
-						arithmaticEnableB_o <= 0;
-						opStat_branch_o <= operationStatusB_i;//if pipeline B has teh branch, status for pipeline B goes to the branch
-						//storeEnable_o <= 0;
-						//loadEnable_o <= 0;
-						lsEnableB_o <= 0;
-										
-					end
-					else if(functionalTypeB_i == 3)//reg
-					begin
-						arithmaticEnableB_o <= 0;
+						if(functionalTypeB_i == 0)//arith
+						begin
+							 arithmaticEnableB_o <= enableB_i;
+							 lsEnableB_o <= 0;
+						end
+						else if(functionalTypeB_i == 1)//load store
+						begin
+							arithmaticEnableB_o <= 0;
+							lsEnableB_o <= enableB_i;
+						end
 						
-						//storeEnable_o <= 0;
-						//loadEnable_o <= 0;
-						lsEnableB_o <= 0;
-						
+						else if(functionalTypeB_i == 2)//branch
+						begin
+							arithmaticEnableB_o <= 0;
+							opStat_branch_o <= operationStatusB_i;//if pipeline B has teh branch, status for pipeline B goes to the branch
+							lsEnableB_o <= 0;
+						end
+						else if(functionalTypeB_i == 3)//reg
+						begin
+							arithmaticEnableB_o <= 0;
+							lsEnableB_o <= 0;
+						end
 					end
-				end	
+				end					
 			end
 	 end
 

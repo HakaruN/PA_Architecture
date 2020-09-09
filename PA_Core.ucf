@@ -1,12 +1,12 @@
 //P101
-NET "reset_i" LOC = P"101";
+NET "reset_i" LOC = "P101";
 //P184
-NET "clock_i" LOC = P"184";
+NET "clock_i" LOC = "P184";
 
 
 NET "wbValAFinal_o[0]" LOC = "P61";
 NET "wbValAFinal_o[1]" LOC = "P60";
-NET "wbValAFinal_o[2]"  LOC ="p55;
+NET "wbValAFinal_o[2]"  LOC ="p55";
 NET "wbValAFinal_o[3]" LOC = "P50";
 NET "wbValAFinal_o[4]" LOC = "P49";
 NET "wbValAFinal_o[5]" LOC = "P48";

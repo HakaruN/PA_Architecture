@@ -36,7 +36,7 @@ module RegController(
 	
 	
 	//buffer for the inputs that bypass the reg read 
-	reg pwriteA, pwriteB;//writeback flag must be reserved
+	reg pwriteA, pwriteB;//writeback flag must be preserved
 	reg enableA, enableB;//enables to the exec controler
 	reg [4:0] regAddrA, regAddrB;
 	reg [6:0] opcodeA, opcodeB;
@@ -46,6 +46,11 @@ module RegController(
 	wire [15:0] secOperandA, secOperandB;
 	wire [1:0] operationStatusA, operationStatusB;
 	
+	//register assignment
+	reg assignEnableA, assignEnableB;
+	reg [4:0] assignAddrA, assignAddrB;
+	reg [15:0] assignDatA, assignDatB;
+	reg isSecReadA, isSecReadB;
 	
 	//register file	
 	RegisterFile regFile(
@@ -70,7 +75,13 @@ module RegController(
 	//writeback from store unit
 	.wbALoadStore_i(wbA_ls_i), .wbBLoadStore_i(wbB_ls_i),
 	.wbAAddrLS_i(wbAddrA_ls_i), .wbBAddrLS_i(wbAddrB_ls_i),
-	.wbADatLS_i(wbValA_ls_i), .wbBDatLS_i(bwVAlB_ls_i)
+	.wbADatLS_i(wbValA_ls_i), .wbBDatLS_i(bwVAlB_ls_i),
+	
+	//direct reg assignment
+	.assignEnableA_i(assignEnableA), .assignEnableB_i(assignEnableB),//enable
+	.assignAddrA_i(assignAddrA), .assignAddrB_i(assignAddrB),//write address
+	.assignDatA_i(assignDatA), .assignDatB_i(assignDatB),//secondary value (could be reg address or immediate val)
+	.isSecReadA_i(isSecReadA), .isSecReadB_i(isSecReadB)//is the secondary value resolved from reading the reg[secondary] or is it an immediate
 	);
 	 
 	 always @(posedge clock_i)
@@ -85,11 +96,11 @@ module RegController(
 			//pass through the enables
 			enableA_o <= enableA;
 			enableA <= enableA_i; 
+			
 			if(enableA)//outputs
 			begin
 				//passing the buffered data to the exec stage
-				//outputs to the Exec por
-				
+				//outputs to the Exec port				
 				wbA_o <= pwriteA;
 				opCodeA_o <= opcodeA;
 				regAddrA_o <= regAddrA;//buffer the register address to writeback to
@@ -103,12 +114,27 @@ module RegController(
 			begin			
 				//the operands aren't buffered through here as they are buffered in the reg file so go directly to the output (of here) from the reg file
 				//buffering the inputs that go around the reg read - the other inputs are either droped in the reg file or are buffered through the reg file
-				
-				pwriteA <= pwriteA_i;
-				opcodeA <= opcodeA_i;
-				regAddrA <= primOperandA_i;//buffer the register address to writeback to
-				functionTypeA <= functionTypeA_i;
-			
+				if(functionTypeA_i == 1 && opcodeA_i == 10 && pwriteA_i)//if a load/store instruction and if its a reg assignment
+				begin
+						//perform the direct reg assignment
+						assignEnableA <= enableA_i; 
+						assignAddrA <= primOperandA_i;
+						assignDatA <= secOperandA_i;
+						isSecReadA <= sreadA_i;	
+						
+						//insert a nop in place of this instruction as its retiring here
+						pwriteA <= 0;
+						opcodeA <= 0;
+						regAddrA <= 0;//buffer the register address to writeback to
+						functionTypeA <= 0;
+				end
+				else
+				begin
+					pwriteA <= pwriteA_i;
+					opcodeA <= opcodeA_i;
+					regAddrA <= primOperandA_i;//buffer the register address to writeback to
+					functionTypeA <= functionTypeA_i;
+				end
 			end
 				
 			enableB_o <= enableB;
@@ -126,10 +152,27 @@ module RegController(
 			
 			if(enableB_i)
 			begin
-				pwriteB <= pwriteB_i;
-				opcodeB <= opcodeB_i;
-				regAddrB <= primOperandB_i;	
-				functionTypeB <= functionTypeB_i;			
+			if(functionTypeB_i == 1 && opcodeB_i == 10 && pwriteB_i)//if a load/store instruction and if its a reg assignment op, and the primary writeback is enabled
+				begin
+					//perform the direct reg assignment
+					assignEnableB <= enableB_i; 
+					assignAddrB <= primOperandB_i;
+					assignDatB <= secOperandB_i;
+					isSecReadB <= sreadB_i;	
+					
+					//insert a nop in place of this instruction as its retiring here
+					pwriteB <= 0;
+					opcodeB <= 0;
+					regAddrB <= 0;	
+					functionTypeB <= 0;
+				end
+				else
+				begin
+					pwriteB <= pwriteB_i;
+					opcodeB <= opcodeB_i;
+					regAddrB <= primOperandB_i;	
+					functionTypeB <= functionTypeB_i;			
+				end
 			end
 		end
 	 end

@@ -5,6 +5,10 @@ module Parser(
 	input wire enable_i,
    input wire [59:0] instruction_i,
 	input wire flushBack_i, 
+	
+	//input from the dependancy checker
+	input wire stall_i,
+	
 	//2 sets of outputs, one for eac instruction as this is a dual issue machine
 	output reg isBranch_o1,  			output reg isBranch_o2,
 	output reg instructionFormat_o1, output reg instructionFormat_o2,
@@ -24,7 +28,7 @@ module Parser(
 		begin
 			wasEnabled <= 0;
 		end
-		else
+		else if(enable_i == 1 && stall_i == 0)
 		begin
 			wasEnabled <= enable_i;//buffer the current enable to wasEnabled
 			if(enable_i)//if we're enabled then set the instruction buffer and do a partial parse (parse stage 1)
@@ -46,7 +50,7 @@ module Parser(
 		begin
 			enable_o1 <= wasEnabled;
 			enable_o2 <= wasEnabled;
-			if(wasEnabled)
+			if(wasEnabled == 1 && stall_i == 0)
 			begin				
 				//parse instruction 1 (this bit can be done independant of the format)
 				instructionFormat_o1 <= instruction1Format;//output format for instruction1
