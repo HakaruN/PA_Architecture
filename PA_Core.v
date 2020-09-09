@@ -24,7 +24,7 @@ module PA_Core(input wire clock_i,
 		output reg [15:0] wbValAFinal_o
     );	
 	//i-cache output - fetch input
-	wire [15:0] pc;
+	//wire [15:0] pc;
 	wire [5:0] bankSelect;//what bank of registers to use (hardcoded to 0 for now)
 	wire [59:0] fetchBuffer;//the buffer where fetched instructions are written to
 	wire fetchEnable;//output enable from the fetch unit
@@ -303,7 +303,7 @@ module PA_Core(input wire clock_i,
 			end
 	end
 	
-	
+	/*
 	always@ (negedge clock_i)
 	begin
 	//debug writing out
@@ -393,6 +393,6 @@ module PA_Core(input wire clock_i,
 	
 	$display("\n");	
 	end
-	
+	*/	
 	
 endmodule

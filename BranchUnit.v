@@ -51,14 +51,14 @@ module BranchUnit(
 				4: begin 									branchDirection_o <= 0; end//unconditional branch-backwards Jump offset by the primary
 				
 				//overflow/underflow branches
-				5: begin if(opStat_i[1] == 1) begin $display("branch on ovrflow"); branchDirection_o <= 1; end end//branch forwards on overflow
-				6: begin if(opStat_i[0] == 1) begin $display("branch on undflow"); branchDirection_o <= 1; end end//branch forwards on underflow
-				7: begin if(opStat_i[1] == 1) begin $display("branch on ovrflow"); branchDirection_o <= 0; end end//branch backwards on overflow
-				8: begin if(opStat_i[0] == 1) begin $display("branch on undflow"); branchDirection_o <= 0; end end//branch backwards on underflow
+				5: begin if(opStat_i[1] == 1) begin branchDirection_o <= 1; end end//branch forwards on overflow
+				6: begin if(opStat_i[0] == 1) begin branchDirection_o <= 1; end end//branch forwards on underflow
+				7: begin if(opStat_i[1] == 1) begin branchDirection_o <= 0; end end//branch backwards on overflow
+				8: begin if(opStat_i[0] == 1) begin branchDirection_o <= 0; end end//branch backwards on underflow
 				endcase
 			end
 			else//if not enabled, disable any branch and dont flush the pipe
-			begin;
+			begin
 				shouldBranch_o <= 0;
 				flushBack_o <= 0;
 			end
