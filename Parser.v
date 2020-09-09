@@ -7,7 +7,7 @@ module Parser(
 	input wire flushBack_i, 
 	
 	//input from the dependancy checker
-	input wire stall_i,
+	//input wire stall_i,
 	
 	//2 sets of outputs, one for eac instruction as this is a dual issue machine
 	output reg isBranch_o1,  			output reg isBranch_o2,
@@ -15,7 +15,8 @@ module Parser(
 	output reg [6:0] opcode_o1, 		output reg [6:0] opcode_o2,
 	output reg [4:0] reg_o1,  			output reg [4:0] reg_o2,
 	output reg [15:0] operand_o1, 	output reg [15:0] operand_o2,
-	output reg enable_o1, 				output reg enable_o2	 	 
+	output reg enable_o1, 				output reg enable_o2,
+	output reg [3:0] fetchedBundleSize_o
     );
 	 
 	 reg instruction1Format;// format = 0 - 19b, format = 1 - 30b	 
@@ -28,7 +29,7 @@ module Parser(
 		begin
 			wasEnabled <= 0;
 		end
-		else if(enable_i == 1 && stall_i == 0)
+		else if(enable_i == 1 /*&& stall_i == 0*/)
 		begin
 			wasEnabled <= enable_i;//buffer the current enable to wasEnabled
 			if(enable_i)//if we're enabled then set the instruction buffer and do a partial parse (parse stage 1)
@@ -37,6 +38,31 @@ module Parser(
 				instruction1Format <= instruction_i[59];//set the buffer for the first instruction so the second stage knows how to divide the buffer		
 			end	
 		end
+		
+		
+		if(instruction_i[59])//instruction 1 is 30b
+		begin
+			if(instruction[29])//instruction 2 is 30b
+			begin
+				fetchedBundleSize_o <= 8;//30+30 rounds to 8 bytes
+			end
+			else//instruction 2 is 19b
+			begin
+				fetchedBundleSize_o <= 7;//30+19 rounds to 7 bytes
+			end
+		end
+		else//instruction1 is 19b
+		begin
+			if(instruction[29])//instruction 2 is 30b
+			begin
+				fetchedBundleSize_o <= 7;//19+30 rounds to 7 bytes
+			end
+			else//instruction 2 is 19b
+			begin
+				fetchedBundleSize_o <= 5;//19+19 rounds to 5 bytes
+			end
+		end
+		
 	end
 	
 	always @(posedge clock_i)//second stage
@@ -50,7 +76,7 @@ module Parser(
 		begin
 			enable_o1 <= wasEnabled;
 			enable_o2 <= wasEnabled;
-			if(wasEnabled == 1 && stall_i == 0)
+			if(wasEnabled == 1 /*&& stall_i == 0*/)
 			begin				
 				//parse instruction 1 (this bit can be done independant of the format)
 				instructionFormat_o1 <= instruction1Format;//output format for instruction1
@@ -59,14 +85,14 @@ module Parser(
 				reg_o1 <= instruction[50:46];//set the first register operand			
 				if(instruction1Format)
 				begin
-					//parse operand 1 according to instruction 1 being 30b	
-					operand_o1 <= instruction[45:30];//take the bottom 16 bits from instruction 1, as its an immediate val	
+					//parse operand 1 according to instruction 1 being 30b
+					operand_o1 <= instruction[45:30];//take the bottom 16 bits from instruction 1, as its an immediate val
 					//parse instruction 2 according to instruction 1 being 30b
 					instructionFormat_o2 <= instruction[29];//set the format
 					isBranch_o2 <= instruction[28];//set the branchyness
 					opcode_o2 <= instruction[27:21];//set the opcode
 					reg_o2 <= instruction[20:16];
-					operand_o2 <= instruction[15: 0];					
+					operand_o2 <= instruction[15: 0];
 				end
 				else
 				begin

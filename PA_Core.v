@@ -30,9 +30,12 @@ module PA_Core(input wire clock_i,
 	wire fetchEnable;//output enable from the fetch unit
 	wire flushBack;//flush line that indicates all pipelines before the branch unit are to flush the stages
 	
+	//branch control
+	wire shouldBranch;
+	wire [15:0] branchOffset;
+	wire branchDirection;
 	
-	
-	Fetch fetch(.clock_i(clock_i), .reset_i(reset_i), .flushBack_i(flushBack), .PC(pc), .stall_i(isStalledFrontEnd), .data_o(fetchBuffer), .enable_o(fetchEnable));
+	Fetch fetch(.clock_i(clock_i), .reset_i(reset_i), .flushBack_i(flushBack), .shouldBranch_i(shouldBranch), .branchOffset_i(branchOffset), .branchDirection_i(branchDirection), /*.stall_i(isStalledFrontEnd),*/.pc_o(pc), .data_o(fetchBuffer), .enable_o(fetchEnable));
 
 	//parse out - decode in
 	wire isBranch_1, isBranch_2;
@@ -40,19 +43,22 @@ module PA_Core(input wire clock_i,
 	wire [6:0] opCode_1, opCode_2;
 	wire [4:0] primReg_1, primReg_2;
 	wire [15:0] operand_1, operand_2;
+	wire [3:0] fetchedBundleSize;//number of byes what holds the instruction. this will be how much the PC is incremented by
 	
 	wire decode1Enabled_1, decode1Enabled_2;
 
 	
 	//first stage of the decode unit (more accuratly a parser, it parses 2 instructions per cycle)
 	Parser parseUnit(.clock_i(clock_i), .enable_i(fetchEnable), .instruction_i(fetchBuffer), .flushBack_i(flushBack),
-	.stall_i(isStalledFrontEnd),
+	/*.stall_i(isStalledFrontEnd),*/
 	.isBranch_o1(isBranch_1), .isBranch_o2(isBranch_2),
 	.instructionFormat_o1(instructionFormat_1), .instructionFormat_o2(instructionFormat_2),
 	.opcode_o1(opCode_1), .opcode_o2(opCode_2),
 	.reg_o1(primReg_1), .reg_o2(primReg_2), 
 	.operand_o1(operand_1), .operand_o2(operand_2), 
-	.enable_o1(decode1Enabled_1), .enable_o2(decode1Enabled_2));
+	.enable_o1(decode1Enabled_1), .enable_o2(decode1Enabled_2),
+	.fetchedBundleSize_o(fetchedBundleSize)
+	);
 	
 	//Decode out - (dep unit in) Reg reg in
 	wire [6:0] opcodeA, opcodeB;
@@ -65,18 +71,18 @@ module PA_Core(input wire clock_i,
 	///decode units
 	Decode decodeUnit_1(.clock_i(clock_i), .enable_i(decode1Enabled_1), .flushBack_i(flushBack), .isBranch_i(isBranch_1), 
 	.instructionFormat_i(instructionFormat_1), .opcode_i(opCode_1), .primOperand_i(primReg_1), .secOperand_i(operand_1),
-	.stall_i(isStalledFrontEnd),
+	/*.stall_i(isStalledFrontEnd),*/
 	.opcode_o(opcodeA), .functionType_o(functionTypeA), .primOperand_o(primOperandA), .secOperand_o(secOperandA),
 	.pWrite_o(pWriteA), .pRead_o(pReadA), .sRead_o(sReadA), .enable_o(decodeOEnableA));
 	
 	Decode decodeUnit_2(.clock_i(clock_i), .enable_i(decode1Enabled_2), .flushBack_i(flushBack), .isBranch_i(isBranch_2), 
 	.instructionFormat_i(instructionFormat_2), .opcode_i(opCode_2), .primOperand_i(primReg_2), .secOperand_i(operand_2),
-	.stall_i(isStalledFrontEnd),
+	/*.stall_i(isStalledFrontEnd),*/
 	.opcode_o(opcodeB), .functionType_o(functionTypeB), .primOperand_o(primOperandB), .secOperand_o(secOperandB),
 	.pWrite_o(pWriteB), .pRead_o(pReadB), .sRead_o(sReadB), .enable_o(decodeOEnableB));
 	
 	//stall line
-	wire isStalledFrontEnd = 0;
+	//wire isStalledFrontEnd = 0;
 	/*
 	//dependency out, reg read in
 	wire enableA_Dep, enableB_Dep;
@@ -260,12 +266,10 @@ module PA_Core(input wire clock_i,
 	.clock_i(clock_i), .enable_i(branchEnable), .reset_i(reset_i),
 	.opCode_i(opCode_branch), .pOperand_i(pOperand_branch), .sOperand_i(sOperand_branch), 
 	.flushBack_i(flushBack), .flushBack_o(flushBack), .opStat_i(opStat_branch),
-	.pc_i(pc), 
-	.isStalled_i(isStalledFrontEnd),
-	//outputs
-	.pc_o(pc)
+	//outputs to the fetch unit
+	.shouldBranch_o(shouldBranch), .branchDirection_o(branchDirection), .branchOffset_o(branchOffset)
 	);
-	
+
 	RegisterFrameUnit regFrameUnit(
 	.clock_i(clock_i), .enable_i(enable_regFrame), .reset_i(reset_i),
 	.opCode_i(opCode_regFrame), .regBankSelect_o(bankSelect)
@@ -305,7 +309,10 @@ module PA_Core(input wire clock_i,
 	//debug writing out
 	
 	$display("\n");
-	$display("Global processor state Registers; PC: %d, RegisterBank: %d, Reset: %b, IsFrontStalled:%b ", pc, bankSelect, reset_i, isStalledFrontEnd);
+	$display("Global processor state Registers; PC: %d, RegisterBank: %d, Reset: %b, fetched Bundle size:%d", pc, bankSelect, reset_i, fetchedBundleSize);
+	
+	//fetch control
+	$display("\nBranch: \nShould branch: %b, branch Offset: %d, branch direction: %b", shouldBranch, branchOffset, branchDirection);
 	
 	//fetch debug
 	$display("\nFetch:\nFetched %b, Enable: %b", fetchBuffer, fetchEnable);
@@ -327,15 +334,14 @@ module PA_Core(input wire clock_i,
 	$display("Enables; A:%d, B:%d", decodeOEnableA, decodeOEnableB);
 	
 	//dependancy out
-		//dependency out, reg read in
-		/*
-	$display("\nDependancy: \nEnable out: %b, %b", enableA_Dep, enableB_Dep);
-	$display("Reg accesses (pw,pr,sr); A:%d,%d,%d, B:%d,%d,%d", pwriteA_Dep, preadA_Dep, sreadA_Dep, pwriteB_Dep, preadB_Dep, sreadB_Dep);
-	$display("Function type; A:%d, B:%d ", functionTypeA_Dep, functionTypeB_Dep);
-	$display("Opcode; A:%d, B:%d", opcodeA_Dep_Dep, opcodeB_Dep);
-	$display("Prim operands; A:%d, B:%d", primOperandA_Dep, primOperandB_Dep);
-	$display("Sec operands; A:%d, B:%d", secOperandA_Dep, secOperandB_Dep);
-	*/
+	//dependency out, reg read in		
+	//$display("\nDependancy: \nEnable out: %b, %b", enableA_Dep, enableB_Dep);
+	//$display("Reg accesses (pw,pr,sr); A:%d,%d,%d, B:%d,%d,%d", pwriteA_Dep, preadA_Dep, sreadA_Dep, pwriteB_Dep, preadB_Dep, sreadB_Dep);
+	//$display("Function type; A:%d, B:%d ", functionTypeA_Dep, functionTypeB_Dep);
+	//$display("Opcode; A:%d, B:%d", opcodeA_Dep_Dep, opcodeB_Dep);
+	//$display("Prim operands; A:%d, B:%d", primOperandA_Dep, primOperandB_Dep);
+	//$display("Sec operands; A:%d, B:%d", secOperandA_Dep, secOperandB_Dep);
+	
 	//Reg read out - dispatch in
 	$display("\nReg Read:\nEnable; A:%b, B:%b", enableExecA, enableExecB);
 	$display("IsWriteback; A:%b B:%b", isWbA, isWbB);

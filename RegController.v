@@ -90,12 +90,14 @@ module RegController(
 		begin
 			enableA_o <= 0;
 			enableA <= 0;
+			assignEnableA <= 0;
 		end
 		else
 		begin
 			//pass through the enables
 			enableA_o <= enableA;
 			enableA <= enableA_i; 
+			assignEnableA <= 0;
 			
 			if(enableA)//outputs
 			begin
@@ -114,7 +116,7 @@ module RegController(
 			begin			
 				//the operands aren't buffered through here as they are buffered in the reg file so go directly to the output (of here) from the reg file
 				//buffering the inputs that go around the reg read - the other inputs are either droped in the reg file or are buffered through the reg file
-				if(functionTypeA_i == 1 && opcodeA_i == 10 && pwriteA_i)//if a load/store instruction and if its a reg assignment
+				if(functionTypeA_i == 1 && (opcodeA_i == 10 || opcodeA_i == 0) && pwriteA_i)//if a load/store instruction and if its a reg assignment
 				begin
 						//perform the direct reg assignment
 						assignEnableA <= enableA_i; 
@@ -128,8 +130,15 @@ module RegController(
 						regAddrA <= 0;//buffer the register address to writeback to
 						functionTypeA <= 0;
 				end
+				/*
+				else if(functionTypeA_i == 2 && (opcodeA_i >= 0 && opcodeA_i <= 4))//if its a reg-file resolvable branch
+				begin
+				
+				end
+				*/
 				else
 				begin
+					
 					pwriteA <= pwriteA_i;
 					opcodeA <= opcodeA_i;
 					regAddrA <= primOperandA_i;//buffer the register address to writeback to
@@ -138,7 +147,8 @@ module RegController(
 			end
 				
 			enableB_o <= enableB;
-			enableB <= enableB_i;		
+			enableB <= enableB_i;	
+			assignEnableB <= 0;			
 			if(enableB)
 			begin			
 				wbB_o <= pwriteB;
@@ -152,7 +162,7 @@ module RegController(
 			
 			if(enableB_i)
 			begin
-			if(functionTypeB_i == 1 && opcodeB_i == 10 && pwriteB_i)//if a load/store instruction and if its a reg assignment op, and the primary writeback is enabled
+			if(functionTypeB_i == 1 && (opcodeB_i == 10 || opcodeB_i == 0) && pwriteB_i)//if a load/store instruction and if its a reg assignment op, and the primary writeback is enabled
 				begin
 					//perform the direct reg assignment
 					assignEnableB <= enableB_i; 

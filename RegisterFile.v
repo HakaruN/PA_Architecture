@@ -57,6 +57,7 @@ integer i;
 			statusRegisterB[0] <= 0;
 			statusRegisterB[1] <= 0;
 		end
+
 		
 		//reg assignments
 		//port A

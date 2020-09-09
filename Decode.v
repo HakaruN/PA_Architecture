@@ -12,7 +12,7 @@ module Decode(
 	input wire [15:0] secOperand_i,
 	
 	//input from dependancy check (stall line)
-	input wire stall_i,
+	//input wire stall_i,
 	
 	output reg [6:0] opcode_o,
 	output reg [1:0] functionType_o,	
@@ -33,7 +33,7 @@ begin
 	else
 	begin
 		enable_o <= enable_i;		
-		if(enable_i == 1 && stall_i == 0)
+		if(enable_i == 1 /*&& stall_i == 0*/)
 		begin
 			opcode_o <= opcode_i;
 			primOperand_o <= primOperand_i;
