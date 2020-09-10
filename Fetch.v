@@ -4,6 +4,8 @@ module Fetch(
     input wire clock_i,
 	 input wire reset_i,
 	 input wire flushBack_i,
+	 //fetch control
+	 input wire [3:0] fetchedBundleSize_i,//tells the fetch unit how many bytes to fetch
 	 //branch control
 	 input wire shouldBranch_i,
 	 input wire [15:0] branchOffset_i,
@@ -21,14 +23,16 @@ module Fetch(
 	reg [59:0] iCache [numCacheEntries -1 :0];//128 entry i-cache where each cacheline is 50 bits wide (1 instruction)
 	integer i;
 	
+	integer regNum, bankNum;
+	
 	reg [15:0] PC;
 	
 	always @ (posedge clock_i)
 	begin	
 		if(reset_i)//if not reset
 		begin
-			PC <= 'h0;//reset the pc to 0
-			data_o <= 60'b111111111111111111111111111111111111111111111111111111111111;
+			PC <= 16'h0;//reset the pc to 0
+			data_o <= 60'b000000000000000000000000000000000000000000000000000000000000;
 			//$display("resetting i cache");
 			for(i = 0; i < numCacheEntries; i = i + 1)
 			begin
@@ -58,8 +62,8 @@ module Fetch(
 			if(shouldBranch_i)//if branching
 			begin
 				case(branchDirection_i)
-					0: begin PC <= PC - (branchOffset_i - 7); enable_o <= 1; data_o <= iCache[PC - branchOffset_i]; end//has an aditional offset of 7 as this takes into acount the latency
-					1: begin PC <= PC + (branchOffset_i - 7); enable_o <= 1; data_o <= iCache[PC + branchOffset_i]; end
+					0: begin PC <= PC - (branchOffset_i - 7); enable_o <= 1; data_o <= iCache[PC - (branchOffset_i - 7)]; end//has an aditional offset of 7 as this takes into acount the latency
+					1: begin PC <= PC + (branchOffset_i - 7); enable_o <= 1; data_o <= iCache[PC + (branchOffset_i - 7)]; end
 				endcase
 			end
 			else//else operating normaly

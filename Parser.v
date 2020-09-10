@@ -36,7 +36,9 @@ module Parser(
 			begin//[include desired bit: 1 past the end]
 				instruction <= instruction_i[58:0];//Set the instruction buffer to the instruction taken in
 				instruction1Format <= instruction_i[59];//set the buffer for the first instruction so the second stage knows how to divide the buffer		
-			end	
+			end
+			else
+				fetchedBundleSize_o <= 0;
 		end
 		
 		
