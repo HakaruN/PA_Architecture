@@ -3,6 +3,8 @@ NET "reset_i" LOC = "P101";
 //P184
 NET "clock_i" LOC = "P184";
 
+//l1cache programming
+
 
 NET "wbValAFinal_o[0]" LOC = "P61";
 NET "wbValAFinal_o[1]" LOC = "P60";

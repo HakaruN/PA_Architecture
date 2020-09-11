@@ -28,12 +28,11 @@ module InstructionDispatch(
 		
 		
 		//outputs to load-store
-		output reg loadEnable_o, storeEnable_o,
-		output reg isWbLSA_o, isWbLSB_o, lsEnableA_o, lsEnableB_o,
+		output reg isWbLSA_o, isWbLSB_o,
+		output reg loadStoreA_o, loadStoreB_o,
 		output reg [4:0] lsWbAddressA_o, lsWbAddressB_o,
 		output reg [6:0] lsOpCodeA_o, lsOpCodeB_o,
 		output reg [15:0]lsPoperandA_o, lsSoperandA_o, lsPoperandB_o, lsSoperandB_o
-	
     );
 	 //if this was oo or superscalar the scheduling datastructure would be here
 	 always @(posedge clock_i)
@@ -50,8 +49,7 @@ module InstructionDispatch(
 			isWbLSA_o <= 0; isWbLSB_o <=0;			
 			opCode_branch_o <= 0; pOperand_branch_o <= 0; sOperand_branch_o <= 0;
 			opStat_branch_o <= 0;
-			storeEnable_o <= 0;
-			loadEnable_o <= 0;
+			loadStoreA_o <= 0; loadStoreB_o <= 0;
 			branchEnable_o <= 0;
 			arithmaticEnableA_o <= 0;
 			opStat_branch_o <= 0;//set overflow/underflow to 0
@@ -75,17 +73,6 @@ module InstructionDispatch(
 				opCode_branch_o <= opCodeA_i; pOperand_branch_o <= pOperandA_i; sOperand_branch_o <= sOperandA_i;//branch on pipeline A only rn
 				
 				
-				if(((enableA_i == 1) && (functionalTypeA_i == 1)) | ((enableB_i == 1) && (functionalTypeB_i == 1)))//if either A or B pipelines are a load store
-				begin
-					storeEnable_o <= 1;
-					loadEnable_o <= 1;
-				end
-				else
-				begin
-					storeEnable_o <= 0;
-					loadEnable_o <= 0;
-				end				
-				
 				
 				if(((enableA_i == 1) && (functionalTypeA_i == 2)) | ((enableB_i == 1) && (functionalTypeB_i == 2)))//if either A or B pipelines are a branch
 					branchEnable_o <= 1;
@@ -107,20 +94,19 @@ module InstructionDispatch(
 						if(functionalTypeA_i == 0)//arith
 						begin
 							 arithmaticEnableA_o <= enableA_i;
-							 lsEnableA_o <= 0;
 							 branchEnable_o <= 0;
+							 loadStoreA_o <= 0;
 						end
 						else if(functionalTypeA_i == 1)//load store
 						begin
+							loadStoreA_o <= enableA_i;							
 							arithmaticEnableA_o <= 0;						
-							lsEnableA_o <= enableA_i;
 							branchEnable_o <= 0;
 						end
 						else if(functionalTypeA_i == 2)//branch
 						begin
 							arithmaticEnableA_o <= 0;
-							opStat_branch_o <= operationStatusA_i;//if pipeline A has the branch, status for pipeline A goes to the branch
-							lsEnableA_o <= 0;							
+							opStat_branch_o <= operationStatusA_i;//if pipeline A has the branch, status for pipeline A goes to the branch					
 							branchEnable_o <= enableA_i;
 						end
 					end
@@ -130,19 +116,17 @@ module InstructionDispatch(
 						if(functionalTypeB_i == 0)//arith
 						begin
 							 arithmaticEnableB_o <= enableB_i;
-							 lsEnableB_o <= 0;
 						end
 						else if(functionalTypeB_i == 1)//load store
 						begin
 							arithmaticEnableB_o <= 0;
-							lsEnableB_o <= enableB_i;
+							loadStoreB_o <= enableB_i;	
 						end
 						
 						else if(functionalTypeB_i == 2)//branch
 						begin
 							arithmaticEnableB_o <= 0;
 							opStat_branch_o <= operationStatusB_i;//if pipeline B has teh branch, status for pipeline B goes to the branch
-							lsEnableB_o <= 0;
 						end
 					end
 				end					

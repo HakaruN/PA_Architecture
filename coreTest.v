@@ -27,6 +27,11 @@ module coreTest;
 	// Inputs
 	reg clock_i;
 	reg reset_i;
+	
+	reg halt_i;
+	reg icacheWriteEnable_i;
+	reg [15:0] writeAddress_i;
+	reg[59:0] instruction_i;
 
 	// Outputs
 	wire wbAFinal_o;

@@ -12,7 +12,7 @@ module LoadStore(
 		output reg [15:0] wbDataA_o, wbDataB_o
     );	 
 	 //data cache
-	 parameter numCachelines = 8; parameter cachlinewidth = 16; parameter sizeOfAByte = 8;
+	 parameter numCachelines = 3; parameter cachlinewidth = 16; parameter sizeOfAByte = 8;
 	 //reg [(cachlinewidth * sizeOfAByte) - 1:0] dCache [numCachelines -1 :0];//128 entry i-cache where each cacheline is 50 bits wide (1 instruction)
 	 reg [15:0] dCache [numCachelines -1 :0];//128 entry i-cache where each cacheline is 50 bits wide (1 instruction)
 	 
