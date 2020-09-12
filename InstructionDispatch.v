@@ -42,7 +42,6 @@ module InstructionDispatch(
 			pOperandA_o <= 0; sOperandA_o <= 0; pOperandB_o <= 0; sOperandB_o <= 0;
 			lsPoperandA_o <= 0; lsSoperandA_o <= 0; lsPoperandB_o <= 0; lsSoperandB_o <= 0;
 			opCodeA_o <= 0; opCodeB_o <= 0;
-			lsOpCodeA_o <= 0; lsOpCodeB_o <= 0;
 			wbAddressA_o <= 0; wbAddressB_o <= 0;
 			lsWbAddressA_o <= 0; lsWbAddressB_o <= 0;
 			isWbA_o <= 0; isWbB_o <= 0;
@@ -56,80 +55,77 @@ module InstructionDispatch(
 			end
 			else
 			begin
-				//setting operands
-				pOperandA_o <= pOperandA_i; sOperandA_o <= sOperandA_i; pOperandB_o <= pOperandB_i; sOperandB_o <= sOperandB_i;//arithmatic
-				lsPoperandA_o <= pOperandA_i; lsSoperandA_o <= sOperandA_i; lsPoperandB_o <= pOperandB_i; lsSoperandB_o <= sOperandB_i;//load store
-				//opcodes
-				opCodeA_o <= opCodeA_i; opCodeB_o <= opCodeB_i;
-				lsOpCodeA_o <= opCodeA_i; lsOpCodeB_o <= opCodeB_i;
-				//writeback addresses
-				wbAddressA_o <= wbAddressA_i; wbAddressB_o <= wbAddressB_i;
-				lsWbAddressA_o <= wbAddressA_i; lsWbAddressB_o <= wbAddressB_i;
-				//iswriteback
-				isWbA_o <= isWbA_i; isWbB_o <= isWbB_i;
-				isWbLSA_o <= isWbA_i; isWbLSB_o <=isWbB_i;
-				
-				//branch and reg need inputs buffering in from both pipelines!
-				opCode_branch_o <= opCodeA_i; pOperand_branch_o <= pOperandA_i; sOperand_branch_o <= sOperandA_i;//branch on pipeline A only rn
-				
-				
-				
-				if(((enableA_i == 1) && (functionalTypeA_i == 2)) | ((enableB_i == 1) && (functionalTypeB_i == 2)))//if either A or B pipelines are a branch
-					branchEnable_o <= 1;
-				else
+				//setting enables for the units
+				if(enableA_i == 1)
 				begin
-					opStat_branch_o <= 0;//if neither pipeline are branch, dont care about the op status
-					branchEnable_o <= 0;
+					if(functionalTypeA_i == 0)//arith
+					begin
+						pOperandA_o <= pOperandA_i; sOperandA_o <= sOperandA_i;//operands for arithmatic
+						arithmaticEnableA_o <= enableA_i;
+						opCodeA_o <= opCodeA_i;
+						wbAddressA_o <= wbAddressA_i;
+						isWbA_o <= isWbA_i;//is writeback allowed
+						
+						branchEnable_o <= 0;
+						loadStoreA_o <= 0;
+					end
+					else if(functionalTypeA_i == 1)//load store
+					begin
+						lsPoperandA_o <= pOperandA_i; lsSoperandA_o <= sOperandA_i;//loaadstore operands
+						loadStoreA_o <= enableA_i;//set opcode		
+						lsOpCodeA_o <= opCodeA_i;//set loadstore enable
+						lsWbAddressA_o <= wbAddressA_i;//set store writeback address
+						isWbLSA_o <= isWbA_i;//is writeback allowed
+						
+						arithmaticEnableA_o <= 0;						
+						branchEnable_o <= 0;
+					end
+					else if(functionalTypeA_i == 2)//branch
+					begin
+						opCode_branch_o <= opCodeA_i;//branch opcode
+						pOperand_branch_o <= pOperandA_i; sOperand_branch_o <= sOperandA_i;//branch operands							
+						opStat_branch_o <= operationStatusA_i;//if pipeline A has the branch, status for pipeline A goes to the branch					
+						branchEnable_o <= enableA_i;
+						
+						arithmaticEnableA_o <= 0;
+						loadStoreA_o <= 0;//no loadstore enabled for pipe A
+					end
 				end
 				
-				//if both pipelines are active and are branches, discard the instruction	
-				if(((enableA_i == 1) && (functionalTypeA_i == 2)) && ((enableB_i == 1) && (functionalTypeB_i == 2)))//if either A or B pipelines are a branch
-					branchEnable_o <= 0;
-				else//else no branch hazard
+				if(enableB_i == 1)
 				begin
-				
-					//setting enables for the units
-					if(enableA_i == 1)
+					if(functionalTypeB_i == 0)//arith
 					begin
-						if(functionalTypeA_i == 0)//arith
-						begin
-							 arithmaticEnableA_o <= enableA_i;
-							 branchEnable_o <= 0;
-							 loadStoreA_o <= 0;
-						end
-						else if(functionalTypeA_i == 1)//load store
-						begin
-							loadStoreA_o <= enableA_i;							
-							arithmaticEnableA_o <= 0;						
-							branchEnable_o <= 0;
-						end
-						else if(functionalTypeA_i == 2)//branch
-						begin
-							arithmaticEnableA_o <= 0;
-							opStat_branch_o <= operationStatusA_i;//if pipeline A has the branch, status for pipeline A goes to the branch					
-							branchEnable_o <= enableA_i;
-						end
-					end
-					
-					if(enableB_i == 1)
-					begin
-						if(functionalTypeB_i == 0)//arith
-						begin
-							 arithmaticEnableB_o <= enableB_i;
-						end
-						else if(functionalTypeB_i == 1)//load store
-						begin
-							arithmaticEnableB_o <= 0;
-							loadStoreB_o <= enableB_i;	
-						end
+						pOperandB_o <= pOperandB_i; sOperandB_o <= sOperandB_i;//arithmatic operands
+						arithmaticEnableB_o <= enableB_i;//enable
+						opCodeB_o <= opCodeB_i;//opcode
+						wbAddressB_o <= wbAddressB_i;//writeback addr
+						isWbB_o <= isWbB_i;//is writeback allowed
 						
-						else if(functionalTypeB_i == 2)//branch
-						begin
-							arithmaticEnableB_o <= 0;
-							opStat_branch_o <= operationStatusB_i;//if pipeline B has teh branch, status for pipeline B goes to the branch
-						end
+						loadStoreB_o <= 0;
 					end
-				end					
+					else if(functionalTypeB_i == 1)//load store
+					begin
+						lsPoperandB_o <= pOperandB_i; lsSoperandB_o <= sOperandB_i;//load store
+						lsOpCodeB_o <= opCodeB_i;//set opcode						
+						loadStoreB_o <= enableB_i;//set loadstore enable
+						lsWbAddressB_o <= wbAddressB_i;//set store writeback address
+						isWbLSB_o <=isWbB_i;//is writeback allowed
+						
+						arithmaticEnableB_o <= 0;
+						
+					end						
+					else if(functionalTypeB_i == 2)//branch
+					begin
+						opCode_branch_o <= opCodeB_i;//branch opcode
+						pOperand_branch_o <= pOperandB_i; sOperand_branch_o <= sOperandB_i;//branch operands							
+						opStat_branch_o <= operationStatusB_i;//if pipeline A has the branch, status for pipeline A goes to the branch					
+						branchEnable_o <= enableB_i;
+						
+						arithmaticEnableB_o <= 0;
+						loadStoreB_o <= 0;				
+					end
+				end				
 			end
 	 end
 

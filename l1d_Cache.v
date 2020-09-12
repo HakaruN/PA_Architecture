@@ -31,7 +31,7 @@ module l1d_Cache(
     );
 	 
 	 //data cache
-	 parameter numCachelines = 256; parameter cachlinewidth = 16; parameter sizeOfAByte = 8;
+	 parameter numCachelines = 10000; parameter cachlinewidth = 16; parameter sizeOfAByte = 8;
 	 //reg [(cachlinewidth * sizeOfAByte) - 1:0] dCache [numCachelines -1 :0];//128 entry i-cache where each cacheline is 50 bits wide (1 instruction)
 	 reg [15:0] dCache [numCachelines -1 :0];//128 entry i-cache where each cacheline is 50 bits wide (1 instruction)
 
@@ -49,7 +49,16 @@ module l1d_Cache(
 	always @(posedge clock_i)//update buffers
 	begin
 	//input buffers
-	loadStoreEnableA <= loadStoreA_i; loadStoreEnableB <= loadStoreB_i;
+	if(loadStoreA_i == 1)
+		loadStoreEnableA <= 1;
+	else
+		loadStoreEnableA <= 0;
+	
+		if(loadStoreB_i == 1)
+		loadStoreEnableB <= 1;
+	else
+		loadStoreEnableB <= 0;
+		
 	isWBA <= isWbA_i; isWBB <= isWbB_i;
 	wbAddressA <= wbAddressA_i; wbAddressB <= wbAddressB_i;
 	opCodeA <= opCodeA_i; opCodeB <= opCodeB_i;
@@ -58,7 +67,18 @@ module l1d_Cache(
 	//output buffers
 	wbAddressA_o <= wbAddressA; wbAddressB_o <= wbAddressB;
 	wbDataA_o <= wbDataA; wbDataB_o <= wbDataB;
+	if(wbEnableA == 1)
+		wbEnableA_o <= 1;
+	else
+		wbEnableA_o <= 0;
+		
+	if(wbEnableB == 1)
+		wbEnableB_o <= 1;
+	else
+		wbEnableB_o <= 0;
+		
 	end
+
 	
 	always @(posedge clock_i)
 	begin

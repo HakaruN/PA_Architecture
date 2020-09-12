@@ -21,8 +21,7 @@ module PA_Core(
 		//core state
 		input wire clock_i,
 		input wire reset_i,
-		//icache program
-		input wire halt_i,		
+		//icache programing
 		input wire icacheWriteEnable_i,
 		input wire [15:0] writeAddress_i,
 		input wire [59:0] instruction_i,
@@ -46,6 +45,11 @@ module PA_Core(
 	
 	wire [3:0] fetchedBundleSize;//number of byes what holds the instruction. this will be how much the PC is incremented by
 	
+	//instruction cache write
+	reg icacheWriteEnable;
+	reg [15:0] writeAddress;
+	reg [59:0] instruction;
+	
 	l1i_Cache l1Instr(
 		//output to parse unit (stage 1)
 	.clock_i(clock_i),
@@ -56,13 +60,13 @@ module PA_Core(
 	.shouldBranch_i(shouldBranch), 
 	.branchOffset_i(branchOffset), 
 	.branchDirection_i(branchDirection),
-	.writeEnable_i(icacheWriteEnable_i),
-	.writeAddress_i(writeAddress_i),
-	.instruction_i(instruction_i)
+	.writeEnable_i(icacheWriteEnable),
+	.writeAddress_i(writeAddress),
+	.instruction_i(instruction)
 	);
 	
 	
-	//Fetch fetch(.clock_i(clock_i), .reset_i(reset_i), .flushBack_i(flushBack),.halt_i(halt_i), .writeEnable_i(icacheWriteEnable_i), .writeAddress_i(writeAddress_i), .instruction_i(instruction_i), .fetchedBundleSize_i(fetchedBundleSize), .shouldBranch_i(shouldBranch), .branchOffset_i(branchOffset), .branchDirection_i(branchDirection), /*.stall_i(isStalledFrontEnd),.pc_o(pc),*/ .data_o(fetchBuffer), .enable_o(fetchEnable));
+	//Fetch fetch(.clock_i(clock_i), .reset_i(reset_i), .flushBack_i(flushBack), .writeEnable_i(icacheWriteEnable_i), .writeAddress_i(writeAddress_i), .instruction_i(instruction_i), .fetchedBundleSize_i(fetchedBundleSize), .shouldBranch_i(shouldBranch), .branchOffset_i(branchOffset), .branchDirection_i(branchDirection), /*.stall_i(isStalledFrontEnd),.pc_o(pc),*/ .data_o(fetchBuffer), .enable_o(fetchEnable));
 
 	//parse out - decode in
 	wire isBranch_1, isBranch_2;
@@ -106,42 +110,6 @@ module PA_Core(
 	/*.stall_i(isStalledFrontEnd),*/
 	.opcode_o(opcodeB), .functionType_o(functionTypeB), .primOperand_o(primOperandB), .secOperand_o(secOperandB),
 	.pWrite_o(pWriteB), .pRead_o(pReadB), .sRead_o(sReadB), .enable_o(decodeOEnableB));
-	
-	//stall line
-	//wire isStalledFrontEnd = 0;
-	/*
-	//dependency out, reg read in
-	wire enableA_Dep, enableB_Dep;
-	wire pwriteA_Dep, preadA_Dep, sreadA_Dep, pwriteB_Dep, preadB_Dep, sreadB_Dep;
-	wire [1:0] functionTypeA_Dep, functionTypeB_Dep;
-	wire [6:0] opcodeA_Dep_Dep, opcodeB_Dep;
-	wire [4:0] primOperandA_Dep, primOperandB_Dep;
-	wire [15:0] secOperandA_Dep, secOperandB_Dep;
-	
-	
-	DependencyResolution dependancyCheck(
-	.clock_i(clock_i), .reset_i(reset_i),
-	//Inputs from the decoder
-	.enableA_i(decodeOEnableA), .enableB_i(decodeOEnableB), 
-	.pwriteA_i(pWriteA), .preadA_i(pReadA), .sreadA_i(sReadA), .pwriteB_i(pWriteB), .preadB_i(pReadB), .sreadB_i(sReadB),
-	.functionTypeA_i(functionTypeA), .functionTypeB_i(functionTypeB),
-	.opcodeA_i(opcodeA), .opcodeB_i(opcodeB),
-	.primOperandA_i(primOperandA), .primOperandB_i(primOperandB),
-	.secOperandA_i(secOperandA), .secOperandB_i(secOperandB),
-	.flushBack_i(flushBack), 
-	
-	//stall output
-	.stall_o(isStalledFrontEnd),//will stall the previous stages and the PC
-	
-	//output to the instruction dispatch
-	.enableA_o(enableA_Dep), .enableB_o(enableB_Dep),
-	.pwriteA_o(pwriteA_Dep), .preadA_o(preadA_Dep), .sreadA_o(sreadA_Dep), .pwriteB_o(pwriteB_Dep), .preadB_o(preadB_Dep), .sreadB_o(sreadB_Dep),
-	.functionTypeA_o(functionTypeA_Dep), .functionTypeB_o(functionTypeB_Dep),
-	.opcodeA_o(opcodeA_Dep_Dep), .opcodeB_o(opcodeB_Dep),
-	.primOperandA_o(primOperandA_Dep), .primOperandB_o(primOperandB_Dep),
-	.secOperandA_o(secOperandA_Dep), .secOperandB_o(secOperandB_Dep)
-    );
-	 */
 	
 	//Reg read out - dispatch in
 	wire enableExecA, enableExecB;//enables for the exec units
@@ -307,7 +275,7 @@ module PA_Core(
 	
 	
 	WritebackFIFO writebackFifo(
-	.clock_i(clock_i),
+	.clock_i(clock_i), .reset_i(reset_i),
 	//input data from the Arithmatic units
 	.ArithAEnable_i(wbAArith), .ArithBEnable_i(wbBArith),
 	.ArithWriteAddressA_i(wbAddrAArithmatic), .ArithWriteAddressB_i(wbAddrBArithmatic),
@@ -333,6 +301,11 @@ module PA_Core(
 			wbAddrAFinal_o <= wbAddrAArithmatic;// wbAddrBFinal_o <= wbAddrBFinal;
 			wbValAFinal_o <= wbValAArithmatic;// wbValBFinal_o <= wbValBFinal;
 			
+			//instruction write buffers
+			icacheWriteEnable <= icacheWriteEnable_i;
+			writeAddress <= writeAddress_i;
+			instruction <= instruction_i;
+			
 			if(reset_i)
 			begin
 				wbAArith_o <= 0;
@@ -341,82 +314,96 @@ module PA_Core(
 			end
 	end
 	
-	
+	/*
 	always@ (negedge clock_i)
 	begin
-	//debug writing out
-	
-	$display("\n");
-	$display("Global processor state Registers; PC: %d, Reset: %b, fetched Bundle size:%d", pc,  reset_i, fetchedBundleSize);
-	
-	//fetch control
-	$display("\nBranch: \nShould branch: %b, branch Offset: %d, branch direction: %b", shouldBranch, branchOffset, branchDirection);
-	
-	//fetch debug
-	$display("\nFetch:\nFetched %b, Enable: %b", fetchBuffer, fetchEnable);
-	
-	//parse debug
-	$display("\nParse:\nIs branch; A:%d, B:%d", isBranch_1, isBranch_2);
-	$display("Format (0 = reg-reg, 1 = reg-imm); A:%d, B:%d", instructionFormat_1, instructionFormat_2);
-	$display("Opcode; A:%d, B:%d", opCode_1, opCode_2);
-	$display("Reg; A:%d, B:%d", primReg_1, primReg_2);
-	$display("Operand; A:%d, B:%d", operand_1, operand_2);
-	$display("Enable; A:%b, B:%b", decode1Enabled_1, decode1Enabled_2);
-	
-	//Decode out - reg in
-	$display("\nDecode:\nOpcode; A:%d, B:%d", opcodeA, opcodeB);
-	$display("FunctionType; A:%d, B:%d", functionTypeA, functionTypeB);
-	$display("Primary operand; A:%d, B:%d", primOperandA, primOperandB);
-	$display("Second operand; A:%d, B:%d", secOperandA, secOperandB);
-	$display("Reg accesses (pw,pr,sr); A:%d,%d,%d, B:%d,%d,%d", pWriteA, pReadA, sReadA, pWriteB, pReadB, sReadB);
-	$display("Enables; A:%d, B:%d", decodeOEnableA, decodeOEnableB);
-	
-	//Reg read out - dispatch in
-	$display("\nReg Read:\nEnable; A:%b, B:%b", enableExecA, enableExecB);
-	$display("IsWriteback; A:%b B:%b", isWbA, isWbB);
-	$display("Is secondary immediate (0) or reg(1); A:%b, B:%b", sReadA, sReadB);
-	$display("Reg writeback Address; A:%d, B:%d", regAddrA, regAddrB);
-	$display("Opcode; A:%d, B:%d", opCodeExecA, opCodeExecB);
-	$display("PrimOperand; A:%d, B:%d", ApOperand, BpOperand);
-	$display("SecOperand; A:%d, B:%d", AsOperand, BsOperand);
-	$display("Function type; A:%d, B:%d", functionTypeA_dispatch, functionTypeB_dispatch);
-	$display("Reg file overflow, underflow; A:%b,%b B:%b,%b",writebackStatusA[1], writebackStatusA[0], writebackStatusB[1], writebackStatusB[0]);
+	//debug writing out	
+		if(!icacheWriteEnable)
+		begin
+			$display("\n");
+			$display("Global processor state Registers; PC: %d, Reset: %b, fetched Bundle size:%d", pc,  reset_i, fetchedBundleSize);
+			
+			//fetch control
+			$display("\nBranch: \nShould branch: %b, branch Offset: %d, branch direction: %b", shouldBranch, branchOffset, branchDirection);
+			
+			//fetch debug
+			$display("\nFetch:\nFetched %b, Enable: %b", fetchBuffer, fetchEnable);
+			
+			//parse debug
+			$display("\nParse:\nIs branch; A:%d, B:%d", isBranch_1, isBranch_2);
+			$display("Format (0 = reg-reg, 1 = reg-imm); A:%d, B:%d", instructionFormat_1, instructionFormat_2);
+			$display("Opcode; A:%d, B:%d", opCode_1, opCode_2);
+			$display("Reg; A:%d, B:%d", primReg_1, primReg_2);
+			$display("Operand; A:%d, B:%d", operand_1, operand_2);
+			$display("Enable; A:%b, B:%b", decode1Enabled_1, decode1Enabled_2);
+			
+			//Decode out - reg in
+			$display("\nDecode:\nOpcode; A:%d, B:%d", opcodeA, opcodeB);
+			$display("FunctionType; A:%d, B:%d", functionTypeA, functionTypeB);
+			$display("Primary operand; A:%d, B:%d", primOperandA, primOperandB);
+			$display("Second operand; A:%d, B:%d", secOperandA, secOperandB);
+			$display("Reg accesses (pw,pr,sr); A:%d,%d,%d, B:%d,%d,%d", pWriteA, pReadA, sReadA, pWriteB, pReadB, sReadB);
+			$display("Is secondary immediate (0) or reg(1); A:%b, B:%b", sReadA, sReadB);
+			$display("Enables; A:%d, B:%d", decodeOEnableA, decodeOEnableB);
+			
+			//Reg read out - dispatch in
+			$display("\nReg Read:\nEnable; A:%b, B:%b", enableExecA, enableExecB);
+			$display("IsWriteback; A:%b B:%b", isWbA, isWbB);
+			$display("Reg writeback Address; A:%d, B:%d", regAddrA, regAddrB);
+			$display("Opcode; A:%d, B:%d", opCodeExecA, opCodeExecB);
+			$display("PrimOperand; A:%d, B:%d", ApOperand, BpOperand);
+			$display("SecOperand; A:%d, B:%d", AsOperand, BsOperand);
+			$display("Function type; A:%d, B:%d", functionTypeA_dispatch, functionTypeB_dispatch);
+			$display("Reg file overflow, underflow; A:%b,%b B:%b,%b",writebackStatusA[1], writebackStatusA[0], writebackStatusB[1], writebackStatusB[0]);
 
-	
-	//Dispatch out - Arithmatic in
-	$display("\nArithmatic In:\nEnable A:%b B:%b", arithmaticEnableA_arith, arithmaticEnableB_arith);
-	$display("IsWriteback; A:%b B:%b", isWbA_arith, isWbB_arith);
-	$display("Opcode; A:%d, B:%d", opCodeA_arith, opCodeB_arith);
-	$display("PrimOperand; A:%d, B:%d", pOperandA_arith, pOperandB_arith);
-	$display("SecOperand; A:%d, B:%d", sOperandA_arith, sOperandB_arith);
-	$display("WbAddress; A:%d, B:%d", wbAddressA_arith, wbAddressB_arith);
+			
+			//Dispatch out - Arithmatic in
+			$display("\nArithmatic In:\nEnable A:%b B:%b", arithmaticEnableA_arith, arithmaticEnableB_arith);
+			$display("IsWriteback; A:%b B:%b", isWbA_arith, isWbB_arith);
+			$display("Opcode; A:%d, B:%d", opCodeA_arith, opCodeB_arith);
+			$display("PrimOperand; A:%d, B:%d", pOperandA_arith, pOperandB_arith);
+			$display("SecOperand; A:%d, B:%d", sOperandA_arith, sOperandB_arith);
+			$display("WbAddress; A:%d, B:%d", wbAddressA_arith, wbAddressB_arith);
 
-	//dispatch out - branch in
-	$display("\nBranch in:\nenable: %b", branchEnable);
-	$display("Opcode: %d", opCode_branch);
-	$display("Jump Offset:%d", pOperand_branch);
-	$display("Jump Condition:%d", sOperand_branch);
-	
-	//dispatch out - load/store in
-	$display("\nLoadStore In:\nloadstore enableA: %d, loadstore enableB: %d", loadStoreA, loadStoreB);
-	$display("is writeback for loadstore; A:%b, B:%b", isWbLSA, isWbLSB);
-	$display("loadstore wriback address A:%d, B:%d", lsWbAddressA, lsWbAddressB);
-	$display("loadstore opcode A:%d, B:%d", lsOpCodeA, lsOpCodeB);
-	$display("load store operands(prim, sec) A:%d, %d B:%d, %d", lsPoperandA, lsSoperandA, lsPoperandB, lsSoperandB);
-	
-	//reg writeback - Arithmatic
-	$display("\nReg write(arithmatic):\nwbEnable; A:%b, B:%b", wbAArith, wbBArith);
-	$display("WbAddress; A:%d, B:%d", wbAddrAArithmatic, wbAddrBArithmatic);
-	$display("WBData; A:%d, B:%d", wbValAArithmatic, wbValBArithmatic);
-	//reg writeback - Store
-	$display("\nReg write (store):\nwbEnable; A:%b, B:%b", wbALoadStore, wbBLoadStore);
-	$display("WbAddress; A:%d, B:%d", wbAddrALoadStore, wbAddrBLoadStore);
-	$display("WBData; A:%d, B:%d", wbValALoadStore, wbValBLoadStore);
-	$display("Is overflow; A:%b B:%b",statusWritebackA[1], statusWritebackB[1]);
-	$display("Is underflow; A:%b, B:%b",statusWritebackA[0], statusWritebackB[0]);
-	
-	$display("\n");	
+			//dispatch out - branch in
+			$display("\nBranch in:\nenable: %b", branchEnable);
+			$display("Opcode: %d", opCode_branch);
+			$display("Jump Offset:%d", pOperand_branch);
+			$display("Jump Condition:%d", sOperand_branch);
+			
+			//dispatch out - load/store in
+			$display("\nLoadStore In:\nloadstore enableA: %d, loadstore enableB: %d", loadStoreA, loadStoreB);
+			$display("is writeback for loadstore; A:%b, B:%b", isWbLSA, isWbLSB);
+			$display("loadstore wriback address A:%d, B:%d", lsWbAddressA, lsWbAddressB);
+			$display("loadstore opcode A:%d, B:%d", lsOpCodeA, lsOpCodeB);
+			$display("load store operands(prim, sec) A:%d, %d B:%d, %d", lsPoperandA, lsSoperandA, lsPoperandB, lsSoperandB);
+			
+			//Arithmatic out - FIFO in
+			$display("\nArithmatic out:\nwbEnable; A:%b, B:%b", wbAArith, wbBArith);
+			$display("WbAddress; A:%d, B:%d", wbAddrAArithmatic, wbAddrBArithmatic);
+			$display("WBData; A:%d, B:%d", wbValAArithmatic, wbValBArithmatic);
+			//Store out - FIFO in
+			$display("\nStore out:\nwbEnable; A:%b, B:%b", wbALoadStore, wbBLoadStore);
+			$display("WbAddress; A:%d, B:%d", wbAddrALoadStore, wbAddrBLoadStore);
+			$display("WBData; A:%d, B:%d", wbValALoadStore, wbValBLoadStore);
+			$display("Is overflow; A:%b B:%b",statusWritebackA[1], statusWritebackB[1]);
+			$display("Is underflow; A:%b, B:%b",statusWritebackA[0], statusWritebackB[0]);
+			
+			//FIFO OUT - writeback in
+			$display("\nFIFO out:\nWriteback data; A:%d, B:%d", writebackA, writebackB);
+			$display("WritebackAddres; A:%d, B:%d", writebackAddrA, writebackAddrB);
+			$display("WritebackData; A:%d, B:%d", writebackDataA, writebackDataB);
+			$display("WritebackStatus; A:%d, B:%d", writebackStatusA,writebackStatusB);
+			
+			$display("\n");	
+		end
+		else
+		begin
+			$display("Instruion cache writing: ");
+			$display("Address: %d", writeAddress);
+			$display("Instruction: %b", instruction);
+		end
 	end
-	
+	*/
 	
 endmodule

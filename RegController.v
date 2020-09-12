@@ -57,7 +57,7 @@ module RegController(
 	.clock_i(clock_i), .reset_i(reset_i),
 	
 	//bank selection
-	.bankSelect_i(bankSelect),	
+	.bankSelect_i(bankSelect),
 	
 	//generic port writes
 	.portAWriteEnable_i(wbA_i), .portBWriteEnable_i(wbB_i),
@@ -84,6 +84,7 @@ module RegController(
 	 
 	 always @(posedge clock_i)
 	 begin
+	
 		if(reset_i == 1)
 		begin
 			//operationStatusA <= 0;
@@ -102,7 +103,6 @@ module RegController(
 			
 			
 			//pass through the enables
-			enableA_o <= enableA;
 			enableA <= enableA_i; 
 			assignEnableA <= 0;
 			if(wbA_i)//if arithmatic writeback
@@ -121,6 +121,18 @@ module RegController(
 				secOperandA_o <= secOperandA;
 				functionTypeA_o <= functionTypeA;
 				operationStatusA_o <= operationStatusA;
+				enableA_o <= 1;
+			end
+			else
+			begin
+				wbA_o <= 0;
+				opCodeA_o <= 0;
+				regAddrA_o <= 0;//buffer the register address to writeback to
+				primOperandA_o <= 0;
+				secOperandA_o <= 0;
+				functionTypeA_o <= 0;
+				operationStatusA_o <= 0;
+				enableA_o <= 0;
 			end
 			
 			if(enableA_i)//inputs
@@ -140,6 +152,7 @@ module RegController(
 						opcodeA <= 0;
 						regAddrA <= 0;//buffer the register address to writeback to
 						functionTypeA <= 0;
+						enableA <= 0;
 				end
 				else if(functionTypeA_i == 3 && opcodeA_i == 20)//if bank instruction (reg frame++)
 				begin
@@ -159,7 +172,7 @@ module RegController(
 				end
 			end
 				
-			enableB_o <= enableB;
+			
 			enableB <= enableB_i;	
 			assignEnableB <= 0;			
 			if(enableB)
@@ -171,6 +184,18 @@ module RegController(
 				secOperandB_o <= secOperandB;
 				functionTypeB_o <= functionTypeB;
 				operationStatusB_o <= operationStatusB;
+				enableB_o <= 1;
+			end
+			else
+			begin
+				wbB_o <= 0;
+				opCodeB_o <= 0;			
+				regAddrB_o <= 0;
+				primOperandB_o <= 0;
+				secOperandB_o <= 0;
+				functionTypeB_o <= 0;
+				operationStatusB_o <= 0;
+				enableB_o <= 0;
 			end
 			
 			if(enableB_i)
@@ -188,6 +213,7 @@ module RegController(
 					opcodeB <= 0;
 					regAddrB <= 0;	
 					functionTypeB <= 0;
+					enableB <= 0;
 				end
 				else
 				begin
