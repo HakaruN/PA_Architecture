@@ -29,7 +29,7 @@ module coreTest;
 	reg reset_i;
 	reg icacheWriteEnable_i;
 	reg [15:0] writeAddress_i;
-	reg[59:0] instruction_i;
+	reg[256:0] instruction_i;
 
 	// Outputs
 	wire [15:0] PC_o;

@@ -24,7 +24,7 @@ module PA_Core(
 		//icache programing
 		input wire icacheWriteEnable_i,
 		input wire [15:0] writeAddress_i,
-		input wire [59:0] instruction_i,
+		input wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] instruction_i,
 		//output
 		output reg [15:0] PC_o,
 		output reg wbAArith_o,
@@ -33,8 +33,8 @@ module PA_Core(
     );	
 	 
 	//i-cache output - fetch input
-	wire [15:0] pc;
-	wire [59:0] fetchBuffer;//the buffer where fetched instructions are written to
+	reg [15:0] PC;
+	wire [63:0] fetchBuffer;//the buffer where fetched instructions are written to
 	wire fetchEnable;//output enable from the fetch unit
 	wire flushBack;//flush line that indicates all pipelines before the branch unit are to flush the stages
 	
@@ -48,23 +48,61 @@ module PA_Core(
 	//instruction cache write
 	reg icacheWriteEnable;
 	reg [15:0] writeAddress;
-	reg [59:0] instruction;
+	reg [BLOCK_SIZE * BITS_PER_BYTE - 1:0] cachelineWrite;
 	
+	parameter BLOCK_SIZE = 32;//32 bytes per cacheline
+	parameter BITS_PER_BYTE = 8;//8 bits to a byte
+	parameter CACHE_LINES = 256;//256 cachelines
+	
+	//fetch 1 out, fetch 2 in
+	wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] cacheline_o;
+	wire fetch1enable_o;
+	
+	/*
 	l1i_Cache l1Instr(
 		//output to parse unit (stage 1)
 	.clock_i(clock_i),
 	.reset_i(reset_i),
-	.PC_o(pc),
 	.data_o(fetchBuffer),
 	.enable_o(fetchEnable),
+	
 	.shouldBranch_i(shouldBranch), 
 	.branchOffset_i(branchOffset), 
 	.branchDirection_i(branchDirection),
+	
 	.writeEnable_i(icacheWriteEnable),
 	.writeAddress_i(writeAddress),
 	.instruction_i(instruction)
 	);
+	*/
 	
+	FetchStage1 fetch1(
+	//control
+	.clock_i(clock_i),
+	.reset_i(reset_i),	
+	//inputs
+	.blockAddr_i(PC[15:5]), 
+	.writeEnable_i(icacheWriteEnable), 
+	.writeAddress_i(writeAddress), 
+	.writeBlock_i(cachelineWrite), 	
+	//outputs
+	.block_o(cacheline_o), 
+	.enable_o(fetch1enable_o)	
+	);
+	
+	wire [63:0] fetchWord;
+	
+	FetchStage2 fetch2(
+	//control
+	.clock_i(clock_i),
+	.reset_i(reset_i),
+	//input
+	.qwordAddr_i(PC[4:0]),
+	.block_i(cacheline_o),
+	//output
+	.qWord_o(fetchBuffer),
+	.enable_o(fetchEnable)	
+	);
 	
 	//Fetch fetch(.clock_i(clock_i), .reset_i(reset_i), .flushBack_i(flushBack), .writeEnable_i(icacheWriteEnable_i), .writeAddress_i(writeAddress_i), .instruction_i(instruction_i), .fetchedBundleSize_i(fetchedBundleSize), .shouldBranch_i(shouldBranch), .branchOffset_i(branchOffset), .branchDirection_i(branchDirection), /*.stall_i(isStalledFrontEnd),.pc_o(pc),*/ .data_o(fetchBuffer), .enable_o(fetchEnable));
 
@@ -296,32 +334,47 @@ module PA_Core(
 	
 	always@ (posedge clock_i)
 	begin
-			PC_o <= pc;
-			wbAArith_o <= wbAArith;// wbBFinal_o <= wbBFinal;
-			wbAddrAFinal_o <= wbAddrAArithmatic;// wbAddrBFinal_o <= wbAddrBFinal;
-			wbValAFinal_o <= wbValAArithmatic;// wbValBFinal_o <= wbValBFinal;
-			
-			//instruction write buffers
-			icacheWriteEnable <= icacheWriteEnable_i;
-			writeAddress <= writeAddress_i;
-			instruction <= instruction_i;
-			
 			if(reset_i)
 			begin
+				$display("Resetting core");
 				wbAArith_o <= 0;
 				wbAddrAFinal_o <= 0;
 				wbValAFinal_o <= 0;
+				PC <= 0;
+			end
+			else
+			begin
+			
+				PC_o <= PC;
+				wbAArith_o <= wbAArith;// wbBFinal_o <= wbBFinal;
+				wbAddrAFinal_o <= wbAddrAArithmatic;// wbAddrBFinal_o <= wbAddrBFinal;
+				wbValAFinal_o <= wbValAArithmatic;// wbValBFinal_o <= wbValBFinal;
+				
+				//instruction write buffers
+				icacheWriteEnable <= icacheWriteEnable_i;
+				writeAddress <= writeAddress_i;
+				cachelineWrite <= instruction_i;
+				
+				if(shouldBranch)//if shoult branch
+				begin
+					case(branchDirection)
+						0: begin PC <= PC - (branchOffset); end//has an aditional offset of 7 as this takes into acount the latency
+						1: begin PC <= PC + (branchOffset); end
+					endcase
+				end
+				else
+					PC <= PC + 4;//incremenet the PC by a quadword
 			end
 	end
 	
-	/*
+	
 	always@ (negedge clock_i)
 	begin
 	//debug writing out	
 		if(!icacheWriteEnable)
 		begin
 			$display("\n");
-			$display("Global processor state Registers; PC: %d, Reset: %b, fetched Bundle size:%d", pc,  reset_i, fetchedBundleSize);
+			$display("Global processor state Registers; PC: %d, Reset: %b, fetched Bundle size:%d", PC,  reset_i, fetchedBundleSize);
 			
 			//fetch control
 			$display("\nBranch: \nShould branch: %b, branch Offset: %d, branch direction: %b", shouldBranch, branchOffset, branchDirection);
@@ -401,9 +454,9 @@ module PA_Core(
 		begin
 			$display("Instruion cache writing: ");
 			$display("Address: %d", writeAddress);
-			$display("Instruction: %b", instruction);
+			$display("Instruction: %b", cachelineWrite);
 		end
 	end
-	*/
+	
 	
 endmodule

@@ -3,7 +3,7 @@
 module Parser(
 	input wire clock_i,
 	input wire enable_i,
-   input wire [59:0] instruction_i,
+   input wire [63:0] instruction_i,
 	input wire flushBack_i, 
 	
 	//input from the dependancy checker
