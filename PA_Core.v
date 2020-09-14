@@ -24,13 +24,17 @@ module PA_Core(
 		//icache programing
 		input wire icacheWriteEnable_i,
 		input wire [15:0] writeAddress_i,
-		input wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] instruction_i,
+		input wire [255:0] instruction_i,
 		//output
 		output reg [15:0] PC_o,
 		output reg wbAArith_o,
 		output reg [4:0] wbAddrAFinal_o,
 		output reg [15:0] wbValAFinal_o
     );	
+	 
+	parameter BLOCK_SIZE = 32;//32 bytes per cacheline
+	parameter BITS_PER_BYTE = 8;//8 bits to a byte
+	parameter CACHE_LINES = 256;//256 cachelines
 	 
 	//i-cache output - fetch input
 	reg [15:0] PC;
@@ -49,10 +53,6 @@ module PA_Core(
 	reg icacheWriteEnable;
 	reg [15:0] writeAddress;
 	reg [BLOCK_SIZE * BITS_PER_BYTE - 1:0] cachelineWrite;
-	
-	parameter BLOCK_SIZE = 32;//32 bytes per cacheline
-	parameter BITS_PER_BYTE = 8;//8 bits to a byte
-	parameter CACHE_LINES = 256;//256 cachelines
 	
 	//fetch 1 out, fetch 2 in
 	wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] cacheline_o;
@@ -91,14 +91,16 @@ module PA_Core(
 	);
 	
 	wire [63:0] fetchWord;
-	
+	wire [2:0] nextByteOffset;
 	FetchStage2 fetch2(
 	//control
 	.clock_i(clock_i),
 	.reset_i(reset_i),
+	.enable_i(fetch1enable_o),
 	//input
-	.qwordAddr_i(PC[4:0]),
+	.byteAddr_i(PC[4:0]),
 	.block_i(cacheline_o),
+	.nextByteOffset(nextByteOffset),
 	//output
 	.qWord_o(fetchBuffer),
 	.enable_o(fetchEnable)	
@@ -363,7 +365,7 @@ module PA_Core(
 					endcase
 				end
 				else
-					PC <= PC + 4;//incremenet the PC by a quadword
+					PC <= PC + nextByteOffset;//incremenet the PC by a quadword
 			end
 	end
 	

@@ -3,9 +3,10 @@
 module Parser(
 	input wire clock_i,
 	input wire enable_i,
-   input wire [63:0] instruction_i,
+   input wire [63:0] instruction_i,//the instruction buffer pulled in
 	input wire flushBack_i, 
-	
+	input wire [4:0] byteAddr_i,
+	input wire [255:0] block_i,
 	//input from the dependancy checker
 	//input wire stall_i,
 	
@@ -18,19 +19,43 @@ module Parser(
 	output reg enable_o1, 				output reg enable_o2,
 	output reg [3:0] fetchedBundleSize_o
     );
+	
+	
+	reg instruction1Format;// format = 0 - 19b, format = 1 - 30b	 
+	reg wasEnabled;//this buffers the enable signal that came in with the instruction therefore even if the enable isn't high now, the parser will still parse the instruction that came in
+	reg [58:0] instruction;//used for the second part
 	 
-	 reg instruction1Format;// format = 0 - 19b, format = 1 - 30b	 
-	 reg wasEnabled;//this buffers the enable signal that came in with the instruction therefore even if the enable isn't high now, the parser will still parse the instruction that came in
-	 reg [58:0] instruction;//used for the second part
-	 
+	parameter NUM_QUEUE_ENTRIES = 8; 
+	reg [63:0] instructions [NUM_QUEUE_ENTRIES -1: 0];//instruction queue
+	reg instruction1Formats [NUM_QUEUE_ENTRIES -1: 0];//queue to store the formats of the first instruction in the bundle
+	reg instruction2Formats [NUM_QUEUE_ENTRIES -1: 0];//queue to store the formats of the second instruction in the bundle
+	reg [3:0] front, back;//front and back of the queue
+	
+	//partial instruction buffer - used to tell the parser if we have got a part of an instruction remaining after parsing the last bundle
+	reg [2:0]remainingBytesCount;//The number of byes left over from the last instruction that needs to be prefixed to the next one
+	reg [63:0]remainingBytes;//the actual bytes remaining from the last intruction, this will be prefixed from onto the next instruction 
+	
+	
 	always @(posedge clock_i)//first stage
 	begin
 		if(flushBack_i == 1)
 		begin
-			wasEnabled <= 0;
+			front <= 0; back <= 0;//reset the queue
 		end
-		else if(enable_i == 1 /*&& stall_i == 0*/)
+		else
 		begin
+			//Instruction A is at buff[
+		end
+	end
+		
+	/*
+		if(flushBack_i == 1)
+		begin
+			wasEnabled <= 0;
+			front <= 0; back <= 0;//reset the queue
+		end
+		else if(enable_i == 1)//ifenabled, scan and add to the queue
+		begin			
 			wasEnabled <= enable_i;//buffer the current enable to wasEnabled
 			if(enable_i)//if we're enabled then set the instruction buffer and do a partial parse (parse stage 1)
 			begin//[include desired bit: 1 past the end]
@@ -40,6 +65,7 @@ module Parser(
 			else
 				fetchedBundleSize_o <= 0;
 		end
+		
 		
 		
 		if(instruction_i[59])//instruction 1 is 30b
@@ -66,7 +92,7 @@ module Parser(
 		end
 		
 	end
-	
+	*/
 	always @(posedge clock_i)//second stage
 	begin
 		if(flushBack_i == 1)
