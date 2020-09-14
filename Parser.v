@@ -3,136 +3,42 @@
 module Parser(
 	input wire clock_i,
 	input wire enable_i,
-   input wire [63:0] instruction_i,//the instruction buffer pulled in
-	input wire flushBack_i, 
-	input wire [4:0] byteAddr_i,
-	input wire [255:0] block_i,
-	//input from the dependancy checker
-	//input wire stall_i,
+	input wire [31:0] Instruction_i,
+	input wire InstructionFormat_i,
 	
-	//2 sets of outputs, one for eac instruction as this is a dual issue machine
-	output reg isBranch_o1,  			output reg isBranch_o2,
-	output reg instructionFormat_o1, output reg instructionFormat_o2,
-	output reg [6:0] opcode_o1, 		output reg [6:0] opcode_o2,
-	output reg [4:0] reg_o1,  			output reg [4:0] reg_o2,
-	output reg [15:0] operand_o1, 	output reg [15:0] operand_o2,
-	output reg enable_o1, 				output reg enable_o2,
-	output reg [3:0] fetchedBundleSize_o
-    );
+	output reg instructionFormat_o,
+	output reg isBranch_o,	
+	output reg [6:0] opcode_o,
+	output reg [4:0] primOperand_o,
+	output reg [15:0] secOperand_o,
+	output reg enable_o
+	);
 	
-	
-	reg instruction1Format;// format = 0 - 19b, format = 1 - 30b	 
-	reg wasEnabled;//this buffers the enable signal that came in with the instruction therefore even if the enable isn't high now, the parser will still parse the instruction that came in
-	reg [58:0] instruction;//used for the second part
-	 
-	parameter NUM_QUEUE_ENTRIES = 8; 
-	reg [63:0] instructions [NUM_QUEUE_ENTRIES -1: 0];//instruction queue
-	reg instruction1Formats [NUM_QUEUE_ENTRIES -1: 0];//queue to store the formats of the first instruction in the bundle
-	reg instruction2Formats [NUM_QUEUE_ENTRIES -1: 0];//queue to store the formats of the second instruction in the bundle
-	reg [3:0] front, back;//front and back of the queue
-	
-	//partial instruction buffer - used to tell the parser if we have got a part of an instruction remaining after parsing the last bundle
-	reg [2:0]remainingBytesCount;//The number of byes left over from the last instruction that needs to be prefixed to the next one
-	reg [63:0]remainingBytes;//the actual bytes remaining from the last intruction, this will be prefixed from onto the next instruction 
-	
-	
-	always @(posedge clock_i)//first stage
+	always @(posedge clock_i)
 	begin
-		if(flushBack_i == 1)
+		if(enable_i == 1)
 		begin
-			front <= 0; back <= 0;//reset the queue
-		end
-		else
-		begin
-			//Instruction A is at buff[
-		end
-	end
-		
-	/*
-		if(flushBack_i == 1)
-		begin
-			wasEnabled <= 0;
-			front <= 0; back <= 0;//reset the queue
-		end
-		else if(enable_i == 1)//ifenabled, scan and add to the queue
-		begin			
-			wasEnabled <= enable_i;//buffer the current enable to wasEnabled
-			if(enable_i)//if we're enabled then set the instruction buffer and do a partial parse (parse stage 1)
-			begin//[include desired bit: 1 past the end]
-				instruction <= instruction_i[58:0];//Set the instruction buffer to the instruction taken in
-				instruction1Format <= instruction_i[59];//set the buffer for the first instruction so the second stage knows how to divide the buffer		
-			end
-			else
-				fetchedBundleSize_o <= 0;
-		end
-		
-		
-		
-		if(instruction_i[59])//instruction 1 is 30b
-		begin
-			if(instruction[29])//instruction 2 is 30b
+			if(Instruction_i[27:21] != 0)//if not a nop
 			begin
-				fetchedBundleSize_o <= 8;//30+30 rounds to 8 bytes
-			end
-			else//instruction 2 is 19b
-			begin
-				fetchedBundleSize_o <= 7;//30+19 rounds to 7 bytes
-			end
-		end
-		else//instruction1 is 19b
-		begin
-			if(instruction[29])//instruction 2 is 30b
-			begin
-				fetchedBundleSize_o <= 7;//19+30 rounds to 7 bytes
-			end
-			else//instruction 2 is 19b
-			begin
-				fetchedBundleSize_o <= 5;//19+19 rounds to 5 bytes
-			end
-		end
-		
-	end
-	*/
-	always @(posedge clock_i)//second stage
-	begin
-		if(flushBack_i == 1)
-		begin
-			enable_o1 <= 0;
-			enable_o2 <= 0;
-		end
-		else
-		begin
-			enable_o1 <= wasEnabled;
-			enable_o2 <= wasEnabled;
-			if(wasEnabled == 1 /*&& stall_i == 0*/)
-			begin				
-				//parse instruction 1 (this bit can be done independant of the format)
-				instructionFormat_o1 <= instruction1Format;//output format for instruction1
-				isBranch_o1 <= instruction[58];//set the branch bit
-				opcode_o1 <= instruction[57:51];//set the opcode
-				reg_o1 <= instruction[50:46];//set the first register operand			
-				if(instruction1Format)
+				//set the format, branch, opcode and prim operand
+				instructionFormat_o <= InstructionFormat_i;
+				isBranch_o <= Instruction_i[30];//set the is branch flag based on the branch bit
+				opcode_o <= Instruction_i[29:23];//set the opcode
+				primOperand_o <= Instruction_i[22:18];//set the first register operand		
+				
+				//set second operand
+				if(InstructionFormat_i == 1)//if 30 bit instruction
 				begin
-					//parse operand 1 according to instruction 1 being 30b
-					operand_o1 <= instruction[45:30];//take the bottom 16 bits from instruction 1, as its an immediate val
-					//parse instruction 2 according to instruction 1 being 30b
-					instructionFormat_o2 <= instruction[29];//set the format
-					isBranch_o2 <= instruction[28];//set the branchyness
-					opcode_o2 <= instruction[27:21];//set the opcode
-					reg_o2 <= instruction[20:16];
-					operand_o2 <= instruction[15: 0];
+					secOperand_o <= Instruction_i[17:2];//take the bottom 16 bits from instruction 1, as its an immediate val
 				end
-				else
+				else//else a 19 bit instruction
 				begin
-					//parse instructions according to instruction 1 being 19b
-					operand_o1 <= instruction[45:41];//take the bottom 5 bits from instruction 1, as its an register				
-					instructionFormat_o2 <= instruction[40];//set the format
-					isBranch_o2 <= instruction[39];//set the branchyness
-					opcode_o2 <= instruction[38:32];//set the opcode
-					reg_o2 <= instruction[31:27];
-					operand_o2 <= instruction[26: 11];
-				end		
+					secOperand_o <= Instruction_i[17:13];//take the bottom 5 bits from instruction 1, as its an register	
+				end
+				enable_o <= 1;				
 			end
+			else//else its a nop
+				enable_o <= 0;
 		end
 	end
 endmodule

@@ -21,10 +21,13 @@ module PA_Core(
 		//core state
 		input wire clock_i,
 		input wire reset_i,
+		
 		//icache programing
+		input wire shiftRegWriteClock_i,//comes from the writing device
 		input wire icacheWriteEnable_i,
-		input wire [15:0] writeAddress_i,
-		input wire [255:0] instruction_i,
+		input wire enable_i,
+		input wire  writeAddress_i,
+		input wire [7:0] shiftRegData_i,
 		//output
 		output reg [15:0] PC_o,
 		output reg wbAArith_o,
@@ -35,46 +38,37 @@ module PA_Core(
 	parameter BLOCK_SIZE = 32;//32 bytes per cacheline
 	parameter BITS_PER_BYTE = 8;//8 bits to a byte
 	parameter CACHE_LINES = 256;//256 cachelines
+	
+	//instruction cache write
+	wire icacheWriteEnable;
+	wire [7:0] writeAddress;
+	wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] cachelineWrite;
+	
+	cachWriteShiftReg cacheWriteRegister(
+		.iCacheWriteEnable_i(icacheWriteEnable_i), 
+		.regEnable_i(enable_i),
+		.reset_i(reset_i),
+		.shiftClock_i(shiftRegWriteClock_i), 
+		.shiftByte_i(shiftRegData_i),		
+		.addressEnable_i(writeAddress_i), 
+		
+		.icacheWriteEnable_o(icacheWriteEnable), 
+		.writeAddress_o(writeAddress), 
+		.instruction_o(cachelineWrite)
+	);
 	 
 	//i-cache output - fetch input
 	reg [15:0] PC;
-	wire [63:0] fetchBuffer;//the buffer where fetched instructions are written to
-	wire fetchEnable;//output enable from the fetch unit
 	wire flushBack;//flush line that indicates all pipelines before the branch unit are to flush the stages
-	
-	//branch control
+		
+	//branch control - used by the PA_Core module
 	wire shouldBranch;
 	wire [15:0] branchOffset;
 	wire branchDirection;
 	
-	wire [3:0] fetchedBundleSize;//number of byes what holds the instruction. this will be how much the PC is incremented by
-	
-	//instruction cache write
-	reg icacheWriteEnable;
-	reg [15:0] writeAddress;
-	reg [BLOCK_SIZE * BITS_PER_BYTE - 1:0] cachelineWrite;
-	
 	//fetch 1 out, fetch 2 in
-	wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] cacheline_o;
-	wire fetch1enable_o;
-	
-	/*
-	l1i_Cache l1Instr(
-		//output to parse unit (stage 1)
-	.clock_i(clock_i),
-	.reset_i(reset_i),
-	.data_o(fetchBuffer),
-	.enable_o(fetchEnable),
-	
-	.shouldBranch_i(shouldBranch), 
-	.branchOffset_i(branchOffset), 
-	.branchDirection_i(branchDirection),
-	
-	.writeEnable_i(icacheWriteEnable),
-	.writeAddress_i(writeAddress),
-	.instruction_i(instruction)
-	);
-	*/
+	wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] cacheline;
+	wire fetch1enable;	
 	
 	FetchStage1 fetch1(
 	//control
@@ -86,48 +80,59 @@ module PA_Core(
 	.writeAddress_i(writeAddress), 
 	.writeBlock_i(cachelineWrite), 	
 	//outputs
-	.block_o(cacheline_o), 
-	.enable_o(fetch1enable_o)	
+	.block_o(cacheline), 
+	.enable_o(fetch1enable)	
 	);
 	
-	wire [63:0] fetchWord;
-	wire [2:0] nextByteOffset;
+	//fetch 2 out, parse in
+	wire backDisable;
+	wire [3:0] nextByteOffset;
+	wire [31:0] InstructionA, InstructionB;
+	wire InstructionAFormat, InstructionBFormat;
+	wire fetchAEnableO, fetchBEnableO;
+	
 	FetchStage2 fetch2(
 	//control
 	.clock_i(clock_i),
 	.reset_i(reset_i),
-	.enable_i(fetch1enable_o),
+	.enable_i(fetch1enable),
 	//input
 	.byteAddr_i(PC[4:0]),
-	.block_i(cacheline_o),
-	.nextByteOffset(nextByteOffset),
+	.block_i(cacheline),	
 	//output
-	.qWord_o(fetchBuffer),
-	.enable_o(fetchEnable)	
+	.backDisable_o(backDisable),//disables the first fetch unit
+	.nextByteOffset_o(nextByteOffset),
+	.InstructionA_o(InstructionA), .InstructionB_o(InstructionB),
+	.InstructionAFormat_o(InstructionAFormat), .InstructionBFormat_o(), 
+	.enableA_o(fetchAEnableO), .enableB_o(fetchBEnableO)
 	);
 	
-	//Fetch fetch(.clock_i(clock_i), .reset_i(reset_i), .flushBack_i(flushBack), .writeEnable_i(icacheWriteEnable_i), .writeAddress_i(writeAddress_i), .instruction_i(instruction_i), .fetchedBundleSize_i(fetchedBundleSize), .shouldBranch_i(shouldBranch), .branchOffset_i(branchOffset), .branchDirection_i(branchDirection), /*.stall_i(isStalledFrontEnd),.pc_o(pc),*/ .data_o(fetchBuffer), .enable_o(fetchEnable));
-
 	//parse out - decode in
-	wire isBranch_1, isBranch_2;
-	wire instructionFormat_1, instructionFormat_2;
-	wire [6:0] opCode_1, opCode_2;
-	wire [4:0] primReg_1, primReg_2;
-	wire [15:0] operand_1, operand_2;
+	wire instructionAFormat_po, instructionBFormat_po;
+	wire isBranchA_po, isBranchB_po;
+	wire [6:0] opcodeA_po, opcodeB_po;
+	wire [4:0] primOperandA_po, primOperandB_po;
+	wire [15:0] secOperandA_po,secOperandB_po;
+	wire enableA_po, enableB_po;
 	
-	wire decode1Enabled_1, decode1Enabled_2;
-
+	Parser parseA(
+		//control
+		.clock_i(clock_i), .enable_i(fetchAEnableO),
+		//input
+		.Instruction_i(InstructionA), .InstructionFormat_i(InstructionAFormat),
+		//output
+		.instructionFormat_o(instructionAFormat_po), .isBranch_o(isBranchA_po), .opcode_o(opcodeA_po),
+		.primOperand_o(primOperandA_po), .secOperand_o(secOperandA_po), .enable_o(enableA_po)
+	);
 	
-	//first stage of the decode unit (more accuratly a parser, it parses 2 instructions per cycle)
-	Parser parseUnit(.clock_i(clock_i), .enable_i(fetchEnable), .instruction_i(fetchBuffer), .flushBack_i(flushBack),
-	/*.stall_i(isStalledFrontEnd),*/
-	.isBranch_o1(isBranch_1), .isBranch_o2(isBranch_2),
-	.instructionFormat_o1(instructionFormat_1), .instructionFormat_o2(instructionFormat_2),
-	.opcode_o1(opCode_1), .opcode_o2(opCode_2),
-	.reg_o1(primReg_1), .reg_o2(primReg_2), 
-	.operand_o1(operand_1), .operand_o2(operand_2), 
-	.enable_o1(decode1Enabled_1), .enable_o2(decode1Enabled_2),
-	.fetchedBundleSize_o(fetchedBundleSize)
+	Parser parseB(
+		//control
+		.clock_i(clock_i), .enable_i(fetchBEnableO),
+		//input
+		.Instruction_i(InstructionB), .InstructionFormat_i(InstructionBFormat),
+		//output
+		.instructionFormat_o(instructionBFormat_po), .isBranch_o(isBranchB_po), .opcode_o(opcodeB_po),
+		.primOperand_o(primOperandB_po), .secOperand_o(secOperandB_po), .enable_o(enableB_po)
 	);
 	
 	//Decode out - (dep unit in) Reg reg in
@@ -138,15 +143,16 @@ module PA_Core(
 	wire pWriteA, pReadA, sReadA, pWriteB, pReadB, sReadB;
 	wire decodeOEnableA, decodeOEnableB;
 	
+	
 	///decode units
-	Decode decodeUnit_1(.clock_i(clock_i), .enable_i(decode1Enabled_1), .flushBack_i(flushBack), .isBranch_i(isBranch_1), 
-	.instructionFormat_i(instructionFormat_1), .opcode_i(opCode_1), .primOperand_i(primReg_1), .secOperand_i(operand_1),
+	Decode decodeUnit_A(.clock_i(clock_i), .enable_i(enableA_po), .flushBack_i(flushBack), .isBranch_i(isBranchA_po), 
+	.instructionFormat_i(instructionAFormat_po), .opcode_i(opcodeA_po), .primOperand_i(primOperandA_po), .secOperand_i(secOperandA_po),
 	/*.stall_i(isStalledFrontEnd),*/
 	.opcode_o(opcodeA), .functionType_o(functionTypeA), .primOperand_o(primOperandA), .secOperand_o(secOperandA),
 	.pWrite_o(pWriteA), .pRead_o(pReadA), .sRead_o(sReadA), .enable_o(decodeOEnableA));
 	
-	Decode decodeUnit_2(.clock_i(clock_i), .enable_i(decode1Enabled_2), .flushBack_i(flushBack), .isBranch_i(isBranch_2), 
-	.instructionFormat_i(instructionFormat_2), .opcode_i(opCode_2), .primOperand_i(primReg_2), .secOperand_i(operand_2),
+	Decode decodeUnit_B(.clock_i(clock_i), .enable_i(enableB_po), .flushBack_i(flushBack), .isBranch_i(isBranchB_po), 
+	.instructionFormat_i(instructionBFormat_po), .opcode_i(opcodeB_po), .primOperand_i(primOperandB_po), .secOperand_i(secOperandB_po),
 	/*.stall_i(isStalledFrontEnd),*/
 	.opcode_o(opcodeB), .functionType_o(functionTypeB), .primOperand_o(primOperandB), .secOperand_o(secOperandB),
 	.pWrite_o(pWriteB), .pRead_o(pReadB), .sRead_o(sReadB), .enable_o(decodeOEnableB));
@@ -352,11 +358,6 @@ module PA_Core(
 				wbAddrAFinal_o <= wbAddrAArithmatic;// wbAddrBFinal_o <= wbAddrBFinal;
 				wbValAFinal_o <= wbValAArithmatic;// wbValBFinal_o <= wbValBFinal;
 				
-				//instruction write buffers
-				icacheWriteEnable <= icacheWriteEnable_i;
-				writeAddress <= writeAddress_i;
-				cachelineWrite <= instruction_i;
-				
 				if(shouldBranch)//if shoult branch
 				begin
 					case(branchDirection)
@@ -369,7 +370,7 @@ module PA_Core(
 			end
 	end
 	
-	
+	/*
 	always@ (negedge clock_i)
 	begin
 	//debug writing out	
@@ -381,16 +382,21 @@ module PA_Core(
 			//fetch control
 			$display("\nBranch: \nShould branch: %b, branch Offset: %d, branch direction: %b", shouldBranch, branchOffset, branchDirection);
 			
-			//fetch debug
-			$display("\nFetch:\nFetched %b, Enable: %b", fetchBuffer, fetchEnable);
+			//fetch stage 1 debug
+			$display("\nFetch1:\nFetched %b, Enable: %b", cacheline, fetch1enable);
+			
+			//fetch stage 2 debug
+			$display("\nFetch1:\nBackDisable: %b, Next byte offset: %d", backDisable, nextByteOffset);
+			$display("Instruction 1: %b (Format: %b), Instruction 2: %b (Format: %b)", InstructionA, InstructionAFormat, InstructionB, InstructionBFormat); 
+			$display("Fetch 2 output enables A: %b, B: %b", fetchAEnableO, fetchBEnableO);
 			
 			//parse debug
-			$display("\nParse:\nIs branch; A:%d, B:%d", isBranch_1, isBranch_2);
-			$display("Format (0 = reg-reg, 1 = reg-imm); A:%d, B:%d", instructionFormat_1, instructionFormat_2);
-			$display("Opcode; A:%d, B:%d", opCode_1, opCode_2);
-			$display("Reg; A:%d, B:%d", primReg_1, primReg_2);
-			$display("Operand; A:%d, B:%d", operand_1, operand_2);
-			$display("Enable; A:%b, B:%b", decode1Enabled_1, decode1Enabled_2);
+			$display("\nParse:\nIs branch; A:%d, B:%d", isBranchA_po, isBranchB_po);
+			$display("Format (0 = reg-reg, 1 = reg-imm); A:%d, B:%d", instructionAFormat_po, instructionBFormat_po);
+			$display("Opcode; A:%d, B:%d", opcodeA_po, opcodeB_po);
+			$display("Prim operand; A:%d, B:%d", primOperandA_po, primOperandB_po);
+			$display("Secondary operand; A:%d, B:%d", secOperandA_po, secOperandB_po);
+			$display("Output Enable; A:%b, B:%b", enableA_po, enableB_po);
 			
 			//Decode out - reg in
 			$display("\nDecode:\nOpcode; A:%d, B:%d", opcodeA, opcodeB);
@@ -460,5 +466,5 @@ module PA_Core(
 		end
 	end
 	
-	
+	*/
 endmodule

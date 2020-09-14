@@ -16,31 +16,33 @@ module FetchStage2(
 	//fetch out
 	output reg backDisable_o,
 	output reg [3:0] nextByteOffset_o,//number of bytes to increment the pc by to get to the next vliw bundle
-	output reg [63:0] InstructionA_o, InstructionB_o,
+	output reg [31:0] InstructionA_o, InstructionB_o,
 	output reg InstructionAFormat_o, InstructionBFormat_o,
-	output reg enableA_o
+	output reg enableA_o, enableB_o
     );
 		
 	//instruction buffers
-	reg [63:0] InstructionA, InstructionB;
+	reg [31:0] InstructionA, InstructionB;
 	reg InstructionAFormat, InstructionBFormat;//1 = 30bit, 0 = 19bit
 	
 	always @(posedge clock_i)
 	begin
 		if(enable_i == 1)
 		begin
-			$display("\nFetching at byte: %d", byteAddr_i);	
-			$display("Working on word: %b", block_i);
-
+			//$display("\nFetching at byte: %d", byteAddr_i);	
+			//$display("Working on word: %b", block_i);
+				enableA_o <= 1;
+				enableB_o <= 1;
 			if(reset_i == 1)
 			begin
 				enableA_o <= 0;
+				enableB_o <= 0;
 				nextByteOffset_o <= 0;
 			end
 			else if(block_i[byteAddr_i * 8] == 1)//if instruction A in the VLIW bundle is a 30b instruction
 			begin
-				$display("A is 30 bits");
-				$display("InstructionA: %b", block_i[(byteAddr_i * 8) +: 30]);
+				//$display("A is 30 bits");
+				//$display("InstructionA: %b", block_i[(byteAddr_i * 8) +: 30]);
 				InstructionA <= block_i[(byteAddr_i * 8) +: 30];
 				
 				//InstructionA <= block_i[((byteAddr_i * 8) + (30) - 1 )-: 30];//parse instruction A				
@@ -48,8 +50,8 @@ module FetchStage2(
 				
 				if(block_i[(byteAddr_i * 8) + (30)] == 1)//check second instructions size, if its 30b
 				begin
-					$display("B is 30 bits");
-					$display("InstructionB: %b", block_i[((byteAddr_i * 8) + 30) +: 30]);
+					//$display("B is 30 bits");
+					//$display("InstructionB: %b", block_i[((byteAddr_i * 8) + 30) +: 30]);
 					
 					InstructionB <= block_i[((byteAddr_i * 8) + 30) +: 30];
 					//InstructionB <= block_i[(((byteAddr_i * 8) + (30)) + 30 - 1) - : 30];//parse instruction B
@@ -58,8 +60,8 @@ module FetchStage2(
 				end
 				else//else its 19 bit
 				begin
-					$display("B is 19 bits");
-					$display("InstructionB: %b", block_i[((byteAddr_i * 8) + 30) +: 19]);
+					//$display("B is 19 bits");
+					//$display("InstructionB: %b", block_i[((byteAddr_i * 8) + 30) +: 19]);
 					
 					
 					InstructionB <= block_i[((byteAddr_i * 8) + 30) +: 19];
@@ -70,8 +72,8 @@ module FetchStage2(
 			end
 			else//else its a 19b instruction
 			begin
-				$display("A is 19 bits");
-				$display("InstructionA: %b", block_i[(byteAddr_i * 8) +: 19]);
+				//$display("A is 19 bits");
+				//$display("InstructionA: %b", block_i[(byteAddr_i * 8) +: 19]);
 				
 				InstructionAFormat <= 0;
 				InstructionA <= block_i[(byteAddr_i * 8) +: 19];
@@ -79,8 +81,8 @@ module FetchStage2(
 				
 				if(block_i[(byteAddr_i * 8) + 19] == 1)//check second instructions size, if its 30b
 				begin
-					$display("B is 30 bits");
-					$display("InstructionB: %b", block_i[((byteAddr_i * 8) + 19) +: 30]);
+					//$display("B is 30 bits");
+					//$display("InstructionB: %b", block_i[((byteAddr_i * 8) + 19) +: 30]);
 					
 					InstructionB <= block_i[((byteAddr_i * 8) + 19) +: 30];
 					//InstructionB <= block_i[(((byteAddr_i * 8) + 19) + 30 - 1) + : 30];//parse instruction B
@@ -89,8 +91,8 @@ module FetchStage2(
 				end
 				else//else its 19 bit
 				begin
-					$display("B is 19 bits");
-					$display("InstructionB: %b", block_i[((byteAddr_i * 8) + 19) +: 19]);
+					//$display("B is 19 bits");
+					//$display("InstructionB: %b", block_i[((byteAddr_i * 8) + 19) +: 19]);
 					
 					InstructionB <= block_i[((byteAddr_i * 8) + 19) +: 19];
 					//InstructionB <= block_i[(((byteAddr_i * 8) + 19) + 19 - 1 ) - : 19];//parse instruction B
@@ -101,28 +103,5 @@ module FetchStage2(
 			InstructionA_o <= InstructionA; InstructionB_o <= InstructionB;
 			InstructionAFormat_o <= InstructionAFormat; InstructionBFormat_o <= InstructionBFormat;
 		end
-		else if (reset_i == 1)
-		begin
-			nextByteOffset_o <= 0;
-		end
 	end
-
-	/*
-	always @(posedge clock_i)
-	begin
-		if(reset_i == 1)
-		begin
-			qWord <= 0; qwordAddr <= 0;
-			qWord_o <= 0;
-			enable_o <= 0;
-		end
-		else
-		begin
-			qwordAddr <= qwordAddr_i;
-			qWord <= block_i[qwordAddr+: 64];
-			qWord_o <= qWord;
-			enable_o <= 1;
-		end
-	end
-*/
 endmodule

@@ -55,7 +55,7 @@ module iCacheTest;
 	wire [3:0] nextByteOffset;
 	wire [63:0] InstructionA, InstructionB;
 	wire InstructionAFormat, InstructionBFormat;
-	wire stage2enable;
+	wire stage2enable, stage2enable;
 	
 	FetchStage2 stage2(
 		//inputs
@@ -69,7 +69,7 @@ module iCacheTest;
 		.nextByteOffset_o(nextByteOffset),
 		.InstructionA_o(InstructionA), .InstructionB_o(InstructionB),
 		.InstructionAFormat_o(InstructionAFormat), .InstructionBFormat_o(InstructionBFormat),
-		.enableA_o(stage2enable)
+		.enableA_o(stage2enable), enableB_o(stage2enable)
 	);
 	
 parameter BLOCK_SIZE = 32;//32 bytes per block

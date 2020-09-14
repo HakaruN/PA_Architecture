@@ -21,8 +21,6 @@ module Decode(
 	output reg pRead_o, pWrite_o, sRead_o,
 	output reg enable_o
 );	
-//no instructions with read-after-write dependencies may be less than tollerableLatency cycles appart otherwise the read will perform before the write
-parameter tollerableLatency = 3;
 
 always @(posedge clock_i)
 begin
