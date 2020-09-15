@@ -1,5 +1,19 @@
 `timescale 1ns / 1ps
 `default_nettype none
+//////////////////////////////////////////////////////////////////////////////////
+//The reg controller has a number of functions
+//Its first function is to provide an interface between the register file and the core
+//Instructions from decode come to the register file with 3 flags, an opcode and 2 operands. 
+//The flags indicate if the first (primary) operand is to be read from, written to and if the second operand is to be read from
+//If the primary operand is to be written to this is a writeback (after execution, EG $A = $A + $B)
+//If the primary operand is to be read from, this indicates that the instruction requires the value stored in the primary operand (reg)
+//If the second operand it to be read from, this indicatates that the instruction requires the value stored in the secondary operand (therefore is a register address)
+//If the secondary operand is not to be read from, this indicates that the data passed in as the secondary operand is not a register value and therefore is an immediate value.
+//
+//The reg controller also provides an interface for data to be written back to the reg file, with one writeback port for each pipeline (A and B)
+//
+//Another function of the reg controller is to detect data dependencies in the instruction stream and insert nops where needed to prevent RAW hazards
+//////////////////////////////////////////////////////////////////////////////////
 module RegController(
 	//Inputs from the decoder
    input wire clock_i, reset_i,
@@ -36,19 +50,20 @@ module RegController(
 	reg [1:0] functionTypeA, functionTypeB;
 	
 	wire [15:0] primOperandA, primOperandB;
-	wire [15:0] secOperandA, secOperandB;	
+	wire [15:0] secOperandA, secOperandB;
 	
 	//register assignment
 	reg assignEnableA, assignEnableB;
 	reg [4:0] assignAddrA, assignAddrB;
 	reg [15:0] assignDatA, assignDatB;
-	reg isSecReadA, isSecReadB;	
+	reg isSecReadA, isSecReadB;
 	
 	//status register
 	reg [1:0] operationStatusA, operationStatusB;//bits 1 pipe-A overflow, bit 0 underflow.
-	
+	//register blocking file
+	reg [3:0] regBlockingFile [31:0];
 	//selected bank
-	reg [5:0] bankSelect;	
+	reg [5:0] bankSelect;
 	
 	//register file	
 	registerFile regFile(

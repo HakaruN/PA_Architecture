@@ -40,7 +40,7 @@ module FetchStage1(
  
 	parameter BLOCK_SIZE = 32;
 	parameter BITS_PER_BYTE = 8;
-	parameter CACHE_LINES = 64;
+	parameter CACHE_LINES = 32;
 
 	reg [BLOCK_SIZE * BITS_PER_BYTE - 1:0] iCache [CACHE_LINES -1 :0];//128 entry i-cache where each cacheline is 50 bits wide (1 instruction)
 	
@@ -78,7 +78,7 @@ module FetchStage1(
 		begin//reset the cache
 			//$display("Reseting i cache");
 			enable <= 0;
-			writeEnable <= 0;
+			//writeEnable <= 0;
 	
 			//IF FORMAT = 1, REG-IMM. FORMAT = 0 REG-REG
 			//First bit: Format - Second bit: branch - Next 7 bits: opcode - Next 5 bits: Primary operand - Last 5/16 bits: Secondary operand

@@ -31,7 +31,7 @@ module l1d_Cache(
     );
 	 
 	 //data cache
-	 parameter numCachelines = 4000; parameter cachlinewidth = 16; parameter sizeOfAByte = 8;
+	 parameter numCachelines = 2000; parameter cachlinewidth = 16; parameter sizeOfAByte = 8;
 	 //reg [(cachlinewidth * sizeOfAByte) - 1:0] dCache [numCachelines -1 :0];//128 entry i-cache where each cacheline is 50 bits wide (1 instruction)
 	 reg [15:0] dCache [numCachelines -1 :0];//128 entry i-cache where each cacheline is 50 bits wide (1 instruction)
 
