@@ -23,11 +23,12 @@ module PA_Core(
 		input wire reset_i,
 		
 		//icache programing
-		input wire shiftRegWriteClock_i,//comes from the writing device
-		input wire icacheWriteEnable_i,
-		input wire enable_i,
-		input wire  writeAddress_i,
-		input wire [7:0] shiftRegData_i,
+		input wire shiftClk_i,//comes from the writing device
+		input wire shiftEn_i,
+		input wire [7:0] shiftData_i,
+		input wire isAddress_i,
+		input wire shiftOutEn_i,
+		
 		//output
 		output reg [15:0] PC_o,
 		output reg wbAArith_o,
@@ -37,28 +38,29 @@ module PA_Core(
 	 
 	parameter BLOCK_SIZE = 32;//32 bytes per cacheline
 	parameter BITS_PER_BYTE = 8;//8 bits to a byte
-	parameter CACHE_LINES = 256;//256 cachelines
+	parameter CACHE_LINES = 256;//256 cachelines	
+
+	//PC state
+	reg [15:0] PC;
 	
-	//instruction cache write
-	wire icacheWriteEnable;
-	wire [7:0] writeAddress;
-	wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] cachelineWrite;
+	//shitReg out - Fetch in
+	wire shiftOutWriteEnable;
+	wire [7:0] shiftOutAddress;
+	wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] shiftOutCacheLine;
 	
-	cachWriteShiftReg cacheWriteRegister(
-		.iCacheWriteEnable_i(icacheWriteEnable_i), 
-		.regEnable_i(enable_i),
-		.reset_i(reset_i),
-		.shiftClock_i(shiftRegWriteClock_i), 
-		.shiftByte_i(shiftRegData_i),		
-		.addressEnable_i(writeAddress_i), 
-		
-		.icacheWriteEnable_o(icacheWriteEnable), 
-		.writeAddress_o(writeAddress), 
-		.instruction_o(cachelineWrite)
-	);
+	cachWriteShiftReg shiftReg (
+	//inputs
+		.enable_i(shiftEn_i), .clock_i(shiftClk_i),
+		.data_i(shiftData_i), 
+		.isAddress_i(isAddress_i), .shiftOutEn_i(shiftOutEn_i),
+	//outputs
+		.OutEnable_o(shiftOutWriteEnable), 
+		.writeAddress_o(shiftOutAddress), 
+		.instruction_o(shiftOutCacheLine)
+	);	
 	 
 	//i-cache output - fetch input
-	reg [15:0] PC;
+	
 	wire flushBack;//flush line that indicates all pipelines before the branch unit are to flush the stages
 		
 	//branch control - used by the PA_Core module
@@ -66,45 +68,46 @@ module PA_Core(
 	wire [15:0] branchOffset;
 	wire branchDirection;
 	
-	//fetch 1 out, fetch 2 in
-	wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] cacheline;
-	wire fetch1enable;	
+	//fetch 1 out - fetch 2 in
+	wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] fetchedCacheline;
+	wire fetch1enableOut;
 	
 	FetchStage1 fetch1(
 	//control
 	.clock_i(clock_i),
-	.reset_i(reset_i),	
-	//inputs
-	.blockAddr_i(PC[15:5]), 
-	.writeEnable_i(icacheWriteEnable), 
-	.writeAddress_i(writeAddress), 
-	.writeBlock_i(cachelineWrite), 	
-	//outputs
-	.block_o(cacheline), 
-	.enable_o(fetch1enable)	
+	.reset_i(reset_i),
+	.blockAddr_i(PC[10:0]),
+	//instruction write
+	.writeEnable_i(shiftOutWriteEnable),
+	.writeAddress_i(shiftOutAddress),
+	.writeBlock_i(shiftOutCacheLine),	
+	//fetch out
+	.block_o(fetchedCacheline),
+	.enable_o(fetch1enableOut)
 	);
+	
 	
 	//fetch 2 out, parse in
 	wire backDisable;
 	wire [3:0] nextByteOffset;
-	wire [31:0] InstructionA, InstructionB;
-	wire InstructionAFormat, InstructionBFormat;
-	wire fetchAEnableO, fetchBEnableO;
+	wire [31:0] instructionA, instructionB;
+	wire instructionAFormat, instructionBFormat;
+	wire fetch2AEnable, fetch2BEnable;
+	
 	
 	FetchStage2 fetch2(
 	//control
 	.clock_i(clock_i),
 	.reset_i(reset_i),
-	.enable_i(fetch1enable),
+	.enable_i(fetch1enableOut),
 	//input
 	.byteAddr_i(PC[4:0]),
-	.block_i(cacheline),	
-	//output
-	.backDisable_o(backDisable),//disables the first fetch unit
-	.nextByteOffset_o(nextByteOffset),
-	.InstructionA_o(InstructionA), .InstructionB_o(InstructionB),
-	.InstructionAFormat_o(InstructionAFormat), .InstructionBFormat_o(), 
-	.enableA_o(fetchAEnableO), .enableB_o(fetchBEnableO)
+	.block_i(fetchedCacheline),	
+	//fetch out	put
+	.nextByteOffset_o(nextByteOffset),//number of bytes to increment the pc by to get to the next vliw bundle
+	.InstructionA_o(instructionA), .InstructionB_o(instructionB),
+	.InstructionAFormat_o(instructionAFormat), .InstructionBFormat_o(instructionBFormat),
+	.enableA_o(fetch2AEnable), .enableB_o(fetch2BEnable)
 	);
 	
 	//parse out - decode in
@@ -117,9 +120,9 @@ module PA_Core(
 	
 	Parser parseA(
 		//control
-		.clock_i(clock_i), .enable_i(fetchAEnableO),
+		.clock_i(clock_i), .enable_i(fetch2AEnable),
 		//input
-		.Instruction_i(InstructionA), .InstructionFormat_i(InstructionAFormat),
+		.Instruction_i(instructionA), .InstructionFormat_i(instructionAFormat),
 		//output
 		.instructionFormat_o(instructionAFormat_po), .isBranch_o(isBranchA_po), .opcode_o(opcodeA_po),
 		.primOperand_o(primOperandA_po), .secOperand_o(secOperandA_po), .enable_o(enableA_po)
@@ -127,9 +130,9 @@ module PA_Core(
 	
 	Parser parseB(
 		//control
-		.clock_i(clock_i), .enable_i(fetchBEnableO),
+		.clock_i(clock_i), .enable_i(fetch2BEnable),
 		//input
-		.Instruction_i(InstructionB), .InstructionFormat_i(InstructionBFormat),
+		.Instruction_i(instructionB), .InstructionFormat_i(instructionBFormat),
 		//output
 		.instructionFormat_o(instructionBFormat_po), .isBranch_o(isBranchB_po), .opcode_o(opcodeB_po),
 		.primOperand_o(primOperandB_po), .secOperand_o(secOperandB_po), .enable_o(enableB_po)
@@ -319,76 +322,102 @@ module PA_Core(
 	.wbDataA_o(wbValALoadStore), .wbDataB_o(wbValBLoadStore)
 	);		
 	
-	
-	WritebackFIFO writebackFifo(
-	.clock_i(clock_i), .reset_i(reset_i),
-	//input data from the Arithmatic units
-	.ArithAEnable_i(wbAArith), .ArithBEnable_i(wbBArith),
-	.ArithWriteAddressA_i(wbAddrAArithmatic), .ArithWriteAddressB_i(wbAddrBArithmatic),
-	.ArithWriteDataA_i(wbValAArithmatic), .ArithWriteDataB_i(wbValBArithmatic),
-	.ArithWriteStatusA_i(statusWritebackA), .ArithWriteStatusB_i(statusWritebackB),
-
-	//input data from the store unit
-	.StoreAEnable_i(wbALoadStore), .StoreBEnable_i(wbBLoadStore),
-	.StoreAWriteAddress_i(wbAddrALoadStore), .StoreBWriteAddress_i(wbAddrBLoadStore),
-	.StoreAWriteData_i(wbValALoadStore), .StoreBWriteData_i(wbValBLoadStore),
-
-	//two output ports (two dequeues per cycle)
-	.enableA_o(writebackA), .enableB_o(writebackB),
-	.AddressA_o(writebackAddrA), .AddressB_o(writebackAddrB),
-	.DataA_o(writebackDataA), .DataB_o(writebackDataB),
-	.statusA_o(writebackStatusA), .statusB_o(writebackStatusB)
+	//writeback FIFO A & B
+	WritebackFIFO writebackFifoA(
+		//control
+		.clock_i(clock_i), .reset_i(reset_i),
+		//inputs
+		.ArithEnable_i(wbAArith),
+		.ArithWriteAddress_i(wbAddrAArithmatic),
+		.ArithWriteData_i(wbValAArithmatic),
+		.ArithWriteStatus_i(statusWritebackA),
+		.StoreEnable_i(wbALoadStore),
+		.StoreWriteAddress_i(wbAddrALoadStore),
+		.StoreWriteData_i(wbValALoadStore),
+		//outputs
+		.enable_o(writebackA),
+		.Address_o(writebackAddrA),
+		.Data_o(writebackDataA),
+		.status_o(writebackStatusA)
+	);
+	WritebackFIFO writebackFifoB(
+		//control
+		.clock_i(clock_i), .reset_i(reset_i),
+		//inputs
+		.ArithEnable_i(wbBArith),
+		.ArithWriteAddress_i(wbAddrBArithmatic),
+		.ArithWriteData_i(wbValBArithmatic),
+		.ArithWriteStatus_i(statusWritebackB),
+		.StoreEnable_i(wbBLoadStore),
+		.StoreWriteAddress_i(wbAddrBLoadStore),
+		.StoreWriteData_i(wbValBLoadStore),
+		//outputs
+		.enable_o(writebackB),
+		.Address_o(writebackAddrB),
+		.Data_o(writebackDataB),
+		.status_o(writebackStatusB)
 	);
 	
 	always@ (posedge clock_i)
 	begin
-			if(reset_i)
+		if(reset_i)
+		begin
+			$display("Resetting core");
+			wbAArith_o <= 0;
+			wbAddrAFinal_o <= 0;
+			wbValAFinal_o <= 0;
+			PC <= 0;
+		end
+		else
+		begin			
+			PC_o <= PC;
+			wbAArith_o <= wbAArith;// wbBFinal_o <= wbBFinal;
+			wbAddrAFinal_o <= wbAddrAArithmatic;// wbAddrBFinal_o <= wbAddrBFinal;
+			wbValAFinal_o <= wbValAArithmatic;// wbValBFinal_o <= wbValBFinal;	
+			
+			
+
+			if(shouldBranch)//if shoult branch
 			begin
-				$display("Resetting core");
-				wbAArith_o <= 0;
-				wbAddrAFinal_o <= 0;
-				wbValAFinal_o <= 0;
-				PC <= 0;
+				case(branchDirection)
+					0: begin PC <= PC - (branchOffset); end//has an aditional offset of 7 as this takes into acount the latency
+					1: begin PC <= PC + (branchOffset); end
+				endcase
 			end
 			else
-			begin
-			
-				PC_o <= PC;
-				wbAArith_o <= wbAArith;// wbBFinal_o <= wbBFinal;
-				wbAddrAFinal_o <= wbAddrAArithmatic;// wbAddrBFinal_o <= wbAddrBFinal;
-				wbValAFinal_o <= wbValAArithmatic;// wbValBFinal_o <= wbValBFinal;
-				
-				if(shouldBranch)//if shoult branch
+				if(nextByteOffset)
 				begin
-					case(branchDirection)
-						0: begin PC <= PC - (branchOffset); end//has an aditional offset of 7 as this takes into acount the latency
-						1: begin PC <= PC + (branchOffset); end
-					endcase
-				end
-				else
+					$display("PC += %d", nextByteOffset);
 					PC <= PC + nextByteOffset;//incremenet the PC by a quadword
-			end
+				end
+		end
 	end
 	
-	/*
+	
 	always@ (negedge clock_i)
 	begin
 	//debug writing out	
-		if(!icacheWriteEnable)
+		$display("icacheWriteEnable: %d", shiftEn_i);
+		if(shiftEn_i == 0)
 		begin
+		/*
 			$display("\n");
-			$display("Global processor state Registers; PC: %d, Reset: %b, fetched Bundle size:%d", PC,  reset_i, fetchedBundleSize);
+			$display("Global processor state Registers; PC: %d, Reset: %d", PC,  reset_i);
 			
 			//fetch control
 			$display("\nBranch: \nShould branch: %b, branch Offset: %d, branch direction: %b", shouldBranch, branchOffset, branchDirection);
 			
+			//fetch write
+			//$display("I-Cache write:\nWrite enable: %b, write address: %d", shiftOutWriteEnable, shiftOutAddress);
+			//$display("I-Cache cacheline write: %b", shiftOutCacheLine);
+
 			//fetch stage 1 debug
-			$display("\nFetch1:\nFetched %b, Enable: %b", cacheline, fetch1enable);
+			$display("\nFetch-1:\nFetched %b, Enable: %b", fetchedCacheline, fetch1enableOut);
 			
 			//fetch stage 2 debug
-			$display("\nFetch1:\nBackDisable: %b, Next byte offset: %d", backDisable, nextByteOffset);
-			$display("Instruction 1: %b (Format: %b), Instruction 2: %b (Format: %b)", InstructionA, InstructionAFormat, InstructionB, InstructionBFormat); 
-			$display("Fetch 2 output enables A: %b, B: %b", fetchAEnableO, fetchBEnableO);
+			$display("\nFetch-2:\nBackDisable: %b, Next byte offset: %d", backDisable, nextByteOffset);
+			$display("Instruction 1: %b (Format: %b), Instruction 2: %b (Format: %b)", instructionA, instructionAFormat, instructionB, instructionBFormat); 
+			$display("Fetch 2 output enables A: %b, B: %b", fetch2AEnable, fetch2BEnable);
 			
 			//parse debug
 			$display("\nParse:\nIs branch; A:%d, B:%d", isBranchA_po, isBranchB_po);
@@ -455,16 +484,18 @@ module PA_Core(
 			$display("WritebackAddres; A:%d, B:%d", writebackAddrA, writebackAddrB);
 			$display("WritebackData; A:%d, B:%d", writebackDataA, writebackDataB);
 			$display("WritebackStatus; A:%d, B:%d", writebackStatusA,writebackStatusB);
-			
+			*/
 			$display("\n");	
 		end
+		/*
 		else
 		begin
 			$display("Instruion cache writing: ");
-			$display("Address: %d", writeAddress);
-			$display("Instruction: %b", cachelineWrite);
+			$display("Address: %d", shiftOutAddress);
+			$display("Instruction: %b", shiftOutCacheLine);
 		end
+		*/
 	end
 	
-	*/
+	
 endmodule

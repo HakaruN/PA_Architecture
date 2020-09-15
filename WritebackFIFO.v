@@ -22,28 +22,28 @@ module WritebackFIFO(
 	input wire clock_i,
 	input wire reset_i,
 	//input data from the Arithmatic units
-	input wire ArithAEnable_i, ArithBEnable_i,
-	input wire [4:0] ArithWriteAddressA_i, ArithWriteAddressB_i,
-	input wire [15:0] ArithWriteDataA_i, ArithWriteDataB_i,
-	input wire [1:0]ArithWriteStatusA_i, ArithWriteStatusB_i,
+	input wire ArithEnable_i,
+	input wire [4:0] ArithWriteAddress_i,
+	input wire [15:0] ArithWriteData_i,
+	input wire [1:0] ArithWriteStatus_i,
 
 	//input data from the store unit
-	input wire StoreAEnable_i, StoreBEnable_i,
-	input wire [4:0] StoreAWriteAddress_i, StoreBWriteAddress_i,
-	input wire [15:0] StoreAWriteData_i, StoreBWriteData_i,
+	input wire StoreEnable_i,
+	input wire [4:0] StoreWriteAddress_i,
+	input wire [15:0] StoreWriteData_i,
 	
 	//two output ports (two dequeues per cycle)
-	output reg enableA_o, enableB_o,
-	output reg [4:0] AddressA_o, AddressB_o,
-	output reg [15:0] DataA_o, DataB_o,
-	output reg [1:0] statusA_o, statusB_o
+	output reg enable_o,
+	output reg [4:0] Address_o,
+	output reg [15:0] Data_o,
+	output reg [1:0] status_o
 	);
-	
-	parameter NUM_QUEUE_ENTRIES = 16;
+
+	parameter NUM_QUEUE_ENTRIES = 8;
 	integer i;
 	//old status
 	//these are updated with the status from the arithmatics so when the store happens, we know what status to send back
-	reg [1:0] statusA, statusB;
+	reg [1:0] statusR;
 	
 	//writeback queue	
 	reg [4:0] Address [NUM_QUEUE_ENTRIES -1: 0];
@@ -54,13 +54,13 @@ module WritebackFIFO(
 	
 	always @(posedge clock_i)
 	begin
+		//$display("\n");
 		if(reset_i)
 		begin
 			//$display("FIFO reset");
 			front <= 0;
 			back <= 0;
-			statusA <= 0;
-			statusB <= 0;
+			statusR <= 0;
 			for(i = 0; i < NUM_QUEUE_ENTRIES; i = i + 1)
 			begin
 				Address[i] <= 0;
@@ -70,311 +70,76 @@ module WritebackFIFO(
 		end
 		else
 		begin
-			//$display("FIFO enables: %d, %d, %d, %d", ArithAEnable_i, ArithBEnable_i, StoreAEnable_i, StoreBEnable_i);
-			//write to the queue
-			if(ArithAEnable_i && ArithBEnable_i && StoreAEnable_i && StoreBEnable_i)
+			//enqueue
+			if((!ArithEnable_i) && (!StoreEnable_i))
 			begin//all three writebacks
-				//increment the back of the queue for all three writes
-				back <= (back + 4) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressA_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressB_i;
-				Address[(back + 2) % NUM_QUEUE_ENTRIES] <= StoreAWriteAddress_i;
-				Address[(back + 3) % NUM_QUEUE_ENTRIES] <= StoreBWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataA_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteDataB_i;
-				Data[(back + 2) % NUM_QUEUE_ENTRIES] <= StoreAWriteData_i;
-				Data[(back + 3) % NUM_QUEUE_ENTRIES] <= StoreBWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
-				status[(back + 2) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
-				status[(back + 3) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
-				//update the status register for when the memory writeback is all thats there
-				statusA <= ArithWriteStatusA_i;
-				statusB <= ArithWriteStatusB_i;
+				//do nothing if neither are active
+				//$display("enqueing nothing");
+			end
+			else if((!ArithEnable_i) && StoreEnable_i)
+			begin
+				//$display("enqueing 1 element");
+				back <= (back + 1) % NUM_QUEUE_ENTRIES;
 				
-			end
-			else if(ArithAEnable_i && ArithBEnable_i && StoreAEnable_i && (!StoreBEnable_i))
-			begin//all arithmatic writebacks, not store
-				//increment the back of the queue for all three writes
-				back <= (back + 3) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressA_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressB_i;
-				Address[(back + 2) % NUM_QUEUE_ENTRIES] <= StoreAWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataA_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteDataB_i;
-				Data[(back + 2) % NUM_QUEUE_ENTRIES] <= StoreAWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
-				status[(back + 2) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
+				//set the status for the elements in the fifo
+				status[(back + 0) % NUM_QUEUE_ENTRIES] <= statusR;
 				
-				//update the status register for when the memory writeback is all thats there
-				statusA <= ArithWriteStatusA_i;
-				statusB <= ArithWriteStatusB_i;
+				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= StoreWriteAddress_i;
 				
+				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= StoreWriteData_i;						
 			end
-			else if(ArithAEnable_i && ArithBEnable_i && (!StoreAEnable_i) && (StoreBEnable_i))
-			begin//one arithmatic writebacks and store
-				//increment the back of the queue for all three writes
-				back <= (back + 3) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressA_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressB_i;
-				Address[(back + 2) % NUM_QUEUE_ENTRIES] <= StoreBWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataA_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteDataB_i;
-				Data[(back + 2) % NUM_QUEUE_ENTRIES] <= StoreBWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
-				status[(back + 2) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
+			else if(ArithEnable_i && (!StoreEnable_i))
+			begin
+				//$display("enqueing 1 element");
+				back <= (back + 1) % NUM_QUEUE_ENTRIES;
+				statusR <= ArithWriteStatus_i;//set the status state
 				
-				//update the status register for when the memory writeback is all thats there
-				statusA <= ArithWriteStatusA_i;
-				statusB <= ArithWriteStatusB_i;
-			end
-			else if(ArithAEnable_i && ArithBEnable_i && (!StoreAEnable_i) && (!StoreBEnable_i))
-			begin//one arithmatic writebacks, not store
-				//increment the back of the queue for all three writes
-				back <= (back + 2) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressA_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressB_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataA_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteDataB_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
-				//update the status register for when the memory writeback is all thats there
-				statusA <= ArithWriteStatusA_i;
-				statusB <= ArithWriteStatusB_i;
+				//set the status for the elements in the fifo
+				status[(back + 0) % NUM_QUEUE_ENTRIES] <= statusR;	
 				
-			end
-			else if(ArithAEnable_i && (!ArithBEnable_i) && (StoreAEnable_i) && (StoreBEnable_i))
-			begin//one arithmatic writebacks and store
-				//increment the back of the queue for all three writes
-				back <= (back + 3) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressA_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreAWriteAddress_i;
-				Address[(back + 2) % NUM_QUEUE_ENTRIES] <= StoreBWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataA_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreAWriteData_i;
-				Data[(back + 2) % NUM_QUEUE_ENTRIES] <= StoreBWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;		
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
-				status[(back + 2) % NUM_QUEUE_ENTRIES] <= statusB;
-				//update the status register for when the memory writeback is all thats there
-				statusA <= ArithWriteStatusA_i;
+				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddress_i;
 				
+				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteData_i;					
 			end
-			else if(ArithAEnable_i && (!ArithBEnable_i) && (StoreAEnable_i) && (!StoreBEnable_i))
-			begin//one arithmatic writebacks, not store
-				//increment the back of the queue for all three writes
-				back <= (back + 2) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressA_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreAWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataA_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreAWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
-				//update the status register for when the memory writeback is all thats there
-				statusA <= ArithWriteStatusA_i;
-			end
-			else if(ArithAEnable_i && (!ArithBEnable_i) && (!StoreAEnable_i) && (StoreBEnable_i))
-			begin//no arithmatic just store
-				//increment the back of the queue for all three writes
-				back <= (back + 2) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressA_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreBWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataA_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreBWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= statusB;
-				//update the status register for when the memory writeback is all thats there
-				statusA <= ArithWriteStatusA_i;
-			end
-			else if(ArithAEnable_i && (!ArithBEnable_i) && (!StoreAEnable_i) && (!StoreBEnable_i))
+			else if(ArithEnable_i && StoreEnable_i)
 			begin//all three writebacks
-				//increment the back of the queue for all three writes
-				back <= (back + 1) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressA_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataA_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusA_i;
-				//update the status register for when the memory writeback is all thats there
-				statusA <= ArithWriteStatusA_i;
-				
-			end
-			else if((!ArithAEnable_i) && ArithBEnable_i && StoreAEnable_i && StoreBEnable_i)
-			begin//all arithmatic writebacks, not store
-				//increment the back of the queue for all three writes
-				back <= (back + 3) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressB_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreAWriteAddress_i;
-				Address[(back + 2) % NUM_QUEUE_ENTRIES] <= StoreBWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataB_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreAWriteData_i;
-				Data[(back + 2) % NUM_QUEUE_ENTRIES] <= StoreBWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= statusA;
-				status[(back + 2) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
-				//update the status register for when the memory writeback is all thats there
-				statusB <= ArithWriteStatusB_i;
-				
-			end
-			else if((!ArithAEnable_i) && ArithBEnable_i && (StoreAEnable_i) && (!StoreBEnable_i))
-			begin//one arithmatic writebacks and store
-				//increment the back of the queue for all three writes
+				//$display("enqueing 2 elements");
 				back <= (back + 2) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressB_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreAWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataB_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreAWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= statusA;
-				//update the status register for when the memory writeback is all thats there
-				statusB <= ArithWriteStatusB_i;
+				statusR <= ArithWriteStatus_i;//set the status state
 				
-			end
-			else if((!ArithAEnable_i) && ArithBEnable_i && (!StoreAEnable_i) && (StoreBEnable_i))
-			begin//one arithmatic writebacks, not store
-				//increment the back of the queue for all three writes
-				back <= (back + 2) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressB_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreBWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataB_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreBWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
-				//update the status register for when the memory writeback is all thats there
-				statusB <= ArithWriteStatusB_i;
+				//set the status for the elements in the fifo
+				status[(back + 0) % NUM_QUEUE_ENTRIES] <= statusR;
+				status[(back + 1) % NUM_QUEUE_ENTRIES] <= statusR;		
 				
-			end
-			else if((!ArithAEnable_i) && ArithBEnable_i && (!StoreAEnable_i) && (!StoreBEnable_i))
-			begin//one arithmatic writebacks and store
-				//increment the back of the queue for all three writes
-				back <= (back + 1) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddressB_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteDataB_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteStatusB_i;
+				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteAddress_i;
+				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreWriteAddress_i;
 				
+				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= ArithWriteData_i;
+				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreWriteData_i;						
 			end
-			else if((!ArithAEnable_i) && (!ArithBEnable_i) && (StoreAEnable_i) && (StoreBEnable_i))
-			begin//one arithmatic writebacks, not store
-				//increment the back of the queue for all three writes
-				back <= (back + 2) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= StoreAWriteAddress_i;
-				Address[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreBWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= StoreAWriteData_i;
-				Data[(back + 1) % NUM_QUEUE_ENTRIES] <= StoreBWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= statusA;
-				status[(back + 1) % NUM_QUEUE_ENTRIES] <= statusB;
-			end
-			else if((!ArithAEnable_i) && (!ArithBEnable_i) && (StoreAEnable_i) && (!StoreBEnable_i))
-			begin//no arithmatic just store
-				//increment the back of the queue for all three writes
-				back <= (back + 1) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= StoreAWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= StoreAWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= statusA;
-			end
-			else if((!ArithAEnable_i) && (!ArithBEnable_i) && (!StoreAEnable_i) && (StoreBEnable_i))
-			begin//no arithmatic just store
-				//increment the back of the queue for all three writes
-				back <= (back + 1) % NUM_QUEUE_ENTRIES;
-				//write address to all three elements
-				Address[(back + 0) % NUM_QUEUE_ENTRIES] <= StoreBWriteAddress_i;
-				//write data to all three elements
-				Data[(back + 0) % NUM_QUEUE_ENTRIES] <= StoreBWriteData_i;
-				//write data to all three elements
-				status[(back + 0) % NUM_QUEUE_ENTRIES] <= statusB;
-			end
-			//else there are no active inputs
 			
-			
-			//dequeue (2 writebacks per cycle)
-			//$display("Front: %d, Back: %d", front, back);
-			if(front == back) 
+			//dequeue
+			if(front == back)//FIFO empty
 			begin
 				//$display("FIFO EMPTY");
-				enableA_o <= 0;
-				enableB_o <= 0;
+				enable_o <= 0;
 			end
-			else if(((front + 2) % NUM_QUEUE_ENTRIES) > back)//dequeing 2 operations would be too much
+			else if(((front + 1) % NUM_QUEUE_ENTRIES) > back)//dequeing 1 operation is too much (FIFO full)
 			begin
-				if(((front + 1) % NUM_QUEUE_ENTRIES) > back)//dequeing 1 operation is too much
-				begin
-					//is full
-					//$display("queue full");
-					enableA_o <= 0;
-					enableB_o <= 0;
-				end
-				else
-				begin//2 was to many but 1 wasnt, only pull out one
-					//$display("Dequeing 1 writeback");
-					enableA_o <= 1;
-					AddressA_o <= Address[(front + 0) % NUM_QUEUE_ENTRIES];
-					DataA_o <= Data[(front + 0) % NUM_QUEUE_ENTRIES];
-					statusA_o <= status[(front + 0) % NUM_QUEUE_ENTRIES];
-					front <= front + 1;
-					enableB_o <= 0;
-				end
+				//is full
+				//$display("FIFO FULL");
+				enable_o <= 0;
 			end
 			else
-			begin
-				//$display("Dequeing 2 writebacks");
-				//dequeue 2 operations
-				enableA_o <= 1;
-				AddressA_o <= Address[(front + 0) % NUM_QUEUE_ENTRIES];
-				DataA_o <= Data[(front + 0) % NUM_QUEUE_ENTRIES];
-				statusA_o <= status[(front + 0) % NUM_QUEUE_ENTRIES];
-				
-				enableB_o <= 1;
-				AddressB_o <= Address[(front + 1) % NUM_QUEUE_ENTRIES];
-				DataB_o <= Data[(front + 1) % NUM_QUEUE_ENTRIES];
-				statusB_o <= status[(front + 1) % NUM_QUEUE_ENTRIES];
-				
-				front <= front + 2;
-			end
-		end		
+			begin//dequeue one element
+				//$display("Dequeing 1 element");
+				enable_o <= 1;
+				Address_o <= Address[(front + 0) % NUM_QUEUE_ENTRIES];
+				Data_o <= Data[(front + 0) % NUM_QUEUE_ENTRIES];
+				status_o <= status[(front + 0) % NUM_QUEUE_ENTRIES];
+				front <= front + 1;
+			end			
+			
+		end
 	end
-	
-
-
 endmodule

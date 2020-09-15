@@ -22,18 +22,18 @@ module Parser(
 			begin
 				//set the format, branch, opcode and prim operand
 				instructionFormat_o <= InstructionFormat_i;
-				isBranch_o <= Instruction_i[30];//set the is branch flag based on the branch bit
-				opcode_o <= Instruction_i[29:23];//set the opcode
-				primOperand_o <= Instruction_i[22:18];//set the first register operand		
+				isBranch_o <= Instruction_i[28];//set the is branch flag based on the branch bit
+				opcode_o <= Instruction_i[27:21];//set the opcode
+				primOperand_o <= Instruction_i[20:16];//set the first register operand		
 				
 				//set second operand
 				if(InstructionFormat_i == 1)//if 30 bit instruction
 				begin
-					secOperand_o <= Instruction_i[17:2];//take the bottom 16 bits from instruction 1, as its an immediate val
+					secOperand_o <= Instruction_i[15:0];//take the bottom 16 bits from instruction 1, as its an immediate val
 				end
 				else//else a 19 bit instruction
 				begin
-					secOperand_o <= Instruction_i[17:13];//take the bottom 5 bits from instruction 1, as its an register	
+					secOperand_o <= Instruction_i[15:11];//take the bottom 5 bits from instruction 1, as its an register	
 				end
 				enable_o <= 1;				
 			end

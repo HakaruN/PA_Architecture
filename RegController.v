@@ -48,8 +48,7 @@ module RegController(
 	reg [1:0] operationStatusA, operationStatusB;//bits 1 pipe-A overflow, bit 0 underflow.
 	
 	//selected bank
-	reg [5:0] bankSelect;
-	
+	reg [5:0] bankSelect;	
 	
 	//register file	
 	registerFile regFile(
