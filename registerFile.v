@@ -29,7 +29,7 @@ module registerFile(
 	input wire [15:0] regAssignAData_i, regAssignBData_i//,	
     );
 
-parameter NUM_REGISTERS_PER_BANK = 16, NUM_REG_BANKS = 1;
+parameter NUM_REGISTERS_PER_BANK = 16, NUM_REG_BANKS = 2;
 reg [15:0] regFile [(NUM_REGISTERS_PER_BANK * NUM_REG_BANKS)-1:0];//512 16bit registers, each register window has 32 registers so we can have 10 stack frames/processes/programs with registers allocated at once
 integer i;
 

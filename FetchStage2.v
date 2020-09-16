@@ -10,15 +10,23 @@ module FetchStage2(
 	input wire clock_i,
 	input wire reset_i,
 	input wire enable_i,
+	input wire shouldStalled_i,
+	
+	//input
 	input wire [4:0] byteAddr_i,//address of the byte in the block (given by PC[4:0])
 	input wire [0:255] block_i,
+	
+	//control out
+	output reg shouldStalled_o,
 	
 	//fetch out
 	output reg backDisable_o,
 	output reg [3:0] nextByteOffset_o,//number of bytes to increment the pc by to get to the next vliw bundle
-	output reg [31:0] InstructionA_o, InstructionB_o,
+	output reg [29:0] InstructionA_o, InstructionB_o,
 	output reg InstructionAFormat_o, InstructionBFormat_o,
 	output reg enableA_o, enableB_o
+	
+
     );
 		
 	//instruction buffers
@@ -27,7 +35,7 @@ module FetchStage2(
 	
 	always @(posedge clock_i)
 	begin
-		if(enable_i == 1)
+		if(enable_i == 1 && (shouldStalled_i == 0))
 		begin
 			//$display("\nFetching at byte: %d", byteAddr_i);	
 			//$display("Working on word: %b", block_i);

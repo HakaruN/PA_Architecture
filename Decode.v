@@ -1,19 +1,21 @@
 `timescale 1ns / 1ps
 `default_nettype none
 module Decode(
+	//control
 	input wire clock_i,
 	input wire enable_i,
 	input wire flushBack_i, 
-	
+	input wire shouldStall_i,
+	//input
 	input wire isBranch_i,	
 	input wire instructionFormat_i,
 	input wire [6:0] opcode_i,	
 	input wire [4:0] primOperand_i,
 	input wire [15:0] secOperand_i,
 	
-	//input from dependancy check (stall line)
-	//input wire stall_i,
-	
+	//control out
+	output reg shouldStall_o,
+	//output
 	output reg [6:0] opcode_o,
 	output reg [1:0] functionType_o,	
 	output reg [4:0] primOperand_o,
@@ -31,7 +33,7 @@ begin
 	else
 	begin
 		enable_o <= enable_i;		
-		if(enable_i == 1 /*&& stall_i == 0*/)
+		if(enable_i == 1  && (shouldStall_i == 0))
 		begin
 			opcode_o <= opcode_i;
 			primOperand_o <= primOperand_i;

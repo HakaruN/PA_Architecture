@@ -24,6 +24,7 @@ module FetchStage1(
 	input wire clock_i,
 	input wire reset_i,
 	input wire [10:0] blockAddr_i,
+	input wire shouldStalled_i,
 	
 	//feedback from stage 2
 	input wire[3:0] nextByteOffset_i,
@@ -58,15 +59,15 @@ module FetchStage1(
 	//Reset for simulation only
 	always @(posedge clock_i)
 	begin
-		if(reset_i == 0)
+		if((reset_i == 0))
 		begin	
-			if(writeEnable == 1)
+			if(writeEnable == 1 && (shouldStalled_i == 0))
 			begin//if write enable is 1, write to the cache
 				//$display("Writing to i cache");
 				iCache[writeAddress] <= writeBlock;
 				enable <= 0;
 			end
-			else
+			else if(shouldStalled_i == 0)
 			begin//else read from the cache
 				//$display("\nFetching from I cache: Address %d. Fetched: %b",blockAddress, iCache[blockAddress]);
 				//$display("Fetching from I cache");
@@ -98,7 +99,7 @@ module FetchStage1(
 	//update fetch state
 	always @(posedge clock_i)
 	begin	
-		if((reset_i == 0))
+		if((reset_i == 0) && (shouldStalled_i == 0))
 		begin
 			//$display("Updating the buffers in the I cache");
 			//$display("Write enable: %b", writeEnable_i);

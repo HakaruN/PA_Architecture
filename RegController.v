@@ -37,6 +37,10 @@ module RegController(
 	input wire [15:0] secOperandA_i, secOperandB_i,
 	input wire flushBack_i, 
 	
+	//control out
+	output reg shouldAStall_o,
+	output reg shouldBStall_o,
+	
 	//outputs to the Exec port
 	output reg enableA_o, enableB_o,
 	output reg wbA_o, wbB_o,//instruct the exec port to writeback to the reg file
@@ -94,7 +98,7 @@ module RegController(
 	//register blocking file
 	reg [3:0] regBlockingFile [31:0];
 	//selected bank
-	reg [5:0] bankSelect;
+	reg [5:0] bankSelect = 0;
 	
 	
 	//instruction queue
@@ -179,22 +183,22 @@ module RegController(
 		end
 		else
 		begin	
-/*		
-			if(((frontA + 1) % NUM_QUEUE_ENTRIES) > backA)//queue full
+	
+			if(((frontA + 2) % NUM_QUEUE_ENTRIES) > backA)//queue full
 			begin
-				//TODO: stall back
-				$display("instruction queue A full");
+				shouldAStall_o <= 1;
+				//$display("instruction queue will be full");
 			end
-			if(((frontB + 1) % NUM_QUEUE_ENTRIES) > backB)//queue full
+			if(((frontB + 2) % NUM_QUEUE_ENTRIES) > backB)//queue full
 			begin
-				//TODO: stall back	
-				$display("instruction queue B full");
+				shouldBStall_o <= 0;
+				//$display("instruction queue will be full");
 			end			
-		*/
+		
 			////Pushing instructions from decode to the queues		
 			if(enableA_i == 1)//if A is eneabled, enqueue A
 			begin
-				$display("Pushing to queue A");
+				//$display("Pushing to queue A");
 				//add a new entry to the queue
 				pWriteA_Q[(backA) % NUM_QUEUE_ENTRIES] <= pwriteA_i;
 				pReadA_Q[(backA) % NUM_QUEUE_ENTRIES] <= preadA_i;
@@ -209,7 +213,7 @@ module RegController(
 			
 			if(enableB_i == 1)//if B is eneabled, enqueue B
 			begin
-				$display("Pushing to queue B");
+				//$display("Pushing to queue B");
 				//add a new entry to the queue
 				pWriteB_Q[(backB) % NUM_QUEUE_ENTRIES] <= pwriteB_i;
 				pReadB_Q[(backB) % NUM_QUEUE_ENTRIES] <= preadB_i;
@@ -226,21 +230,23 @@ module RegController(
 			///Poping instructions from the queues
 			if(frontA == backA)//FIFO empty
 			begin
-				//$display("A front: %d, Back: %d", frontA, backA);
 				//$display("instruction queue A empty");
-				enableA <= 0;
+				//$display("A front: %d, Back: %d", frontA, backA);
+				shouldAStall_o <= 0;//unstall if were empty so we can take instructions in
+				enableA <= 0;//if empty, make sure were not stalled
 			end
 			else
 			begin
-				$display("A - Register access patterns: %d, %d", pReadA_Q[frontA % NUM_QUEUE_ENTRIES], sReadA_Q[frontA % NUM_QUEUE_ENTRIES]);
-				$display("A - Register depenancy: %d, %d", regBlockingFile[pOperandA_Q[frontA % NUM_QUEUE_ENTRIES]], regBlockingFile[sOperandA_Q[frontA % NUM_QUEUE_ENTRIES]]);
+				//$display("A - Register access patterns: %d, %d", pReadA_Q[frontA % NUM_QUEUE_ENTRIES], sReadA_Q[frontA % NUM_QUEUE_ENTRIES]);
+				//$display("A - Register depenancy: %d, %d", regBlockingFile[pOperandA_Q[frontA % NUM_QUEUE_ENTRIES]], regBlockingFile[sOperandA_Q[frontA % NUM_QUEUE_ENTRIES]]);
 				if((pReadA_Q[frontA % NUM_QUEUE_ENTRIES] == 1) && (sReadA_Q[frontA % NUM_QUEUE_ENTRIES] == 1))//if we need to read both registers
 				begin
 					if((regBlockingFile[pOperandA_Q[frontA % NUM_QUEUE_ENTRIES]] > 0) || (regBlockingFile[sOperandA_Q[frontA % NUM_QUEUE_ENTRIES]] > 0))
 					begin//if the entry at the front needs to read registers that are currently blocking, stall
 						//stall
 						enableA <= 0;
-						$display("A has RAW dependency");
+						//$display("A has RAW dependency");
+						shouldAStall_o <= 1;//stall if we have dependancy
 					end
 					else if((regBlockingFile[pOperandA_Q[frontA % NUM_QUEUE_ENTRIES]] == 0) && (regBlockingFile[sOperandA_Q[frontA % NUM_QUEUE_ENTRIES]] == 0))
 					begin//if the entry at the front of the queue wants to read registers that are not blocking, pop from the queue
@@ -255,7 +261,8 @@ module RegController(
 						secOperandA <= sOperandA_Q[frontA % NUM_QUEUE_ENTRIES];
 						//incrementing the front
 						frontA <= frontA + 1; 	
-						$display("Poping A");
+						//$display("Poping A");
+						shouldAStall_o <= 0;//unstall is we can pop
 						
 					end
 					
@@ -266,7 +273,8 @@ module RegController(
 					begin//if the entry at the front needs to read the primary reg which is blocking, stall
 						//stall
 						enableA <= 0;
-						$display("A has RAW dependecny");
+						//$display("A has RAW dependecny");
+						shouldAStall_o <= 1;//stall if we have dependancy
 					end
 					else if(regBlockingFile[pOperandA_Q[frontA % NUM_QUEUE_ENTRIES]] == 0)
 					begin//if the entry at the front of the queue wants to the prim reg that is not blocking, pop from the queue
@@ -281,7 +289,8 @@ module RegController(
 						secOperandA <= sOperandA_Q[frontA % NUM_QUEUE_ENTRIES];
 						//incrementing the front
 						frontA <= frontA + 1; 	
-						$display("Poping A");						
+						//$display("Poping A");	
+						shouldAStall_o <= 0;//unstall is we can pop						
 					end
 					
 				end
@@ -291,7 +300,8 @@ module RegController(
 					begin//if the entry at the front needs to read the sec reg which is blocking, stall
 						//stall
 						enableA <= 0;
-						$display("A has RAW dependecny");
+						//$display("A has RAW dependecny");
+						shouldAStall_o <= 1;//stall if we have dependancy
 					end
 					else if(regBlockingFile[sOperandA_Q[frontA % NUM_QUEUE_ENTRIES]] == 0)
 					begin//if the entry at the front of the queue wants to the sec reg that is not blocking, pop from the queue
@@ -306,7 +316,8 @@ module RegController(
 						secOperandA <= sOperandA_Q[frontA % NUM_QUEUE_ENTRIES];
 						//incrementing the front
 						frontA <= frontA + 1; 			
-						$display("Poping A");
+						//$display("Poping A");
+						shouldAStall_o <= 0;//unstall is we can pop	
 					end
 					
 				end
@@ -323,15 +334,17 @@ module RegController(
 					secOperandA <= sOperandA_Q[frontA % NUM_QUEUE_ENTRIES];
 					//incrementing the front
 					frontA <= frontA + 1; 			
-					$display("Poping A");
+					//$display("Poping A");
+					shouldAStall_o <= 0;//unstall is we can pop	
 				end
 				
 			end
 			
 			if(frontB == backB)//FIFO empty
 			begin
-				//$display("A front: %d, Back: %d", frontA, backA);
 				//$display("instruction queue B empty");
+				//$display("A front: %d, Back: %d", frontB, backB);
+				shouldBStall_o <= 0;//unstall if were empty so we can take instructions in
 				enableB <= 0;
 			end
 			else
@@ -342,7 +355,8 @@ module RegController(
 					begin//if the entry at the front needs to read registers that are currently blocking, stall
 						//stall
 						enableB <= 0;
-						$display("B has RAW dependecny");
+						//$display("B has RAW dependecny");
+						shouldBStall_o <= 1;//stall if we have dependancy
 					end
 					else if((regBlockingFile[pOperandB_Q[frontB % NUM_QUEUE_ENTRIES]] == 0) && (regBlockingFile[sOperandB_Q[frontB % NUM_QUEUE_ENTRIES]] == 0))
 					begin//if the entry at the front of the queue wants to read registers that are not blocking, pop from the queue
@@ -357,7 +371,8 @@ module RegController(
 						secOperandB <= sOperandB_Q[frontB % NUM_QUEUE_ENTRIES];
 						//incrementing the front
 						frontB <= frontB + 1; 	
-						$display("Poping B");
+						//$display("Poping B");
+						shouldBStall_o <= 0;//unstall is we can pop	
 					end
 					
 				end
@@ -367,7 +382,8 @@ module RegController(
 					begin//if the entry at the front needs to read the primary reg which is blocking, stall
 						//stall
 						enableB <= 0;
-						$display("B has RAW dependecny");
+						//$display("B has RAW dependecny");
+						shouldBStall_o <= 1;//stall if we have dependancy
 					end
 					else if(regBlockingFile[pOperandB_Q[frontB % NUM_QUEUE_ENTRIES]] == 0)
 					begin//if the entry at the front of the queue wants to the prim reg that is not blocking, pop from the queue
@@ -382,7 +398,8 @@ module RegController(
 						secOperandB <= sOperandB_Q[frontB % NUM_QUEUE_ENTRIES];
 						//incrementing the front
 						frontB <= frontB + 1;
-						$display("Poping B");						
+						//$display("Poping B");
+						shouldBStall_o <= 0;//unstall is we can pop						
 					end
 					
 				end
@@ -392,7 +409,8 @@ module RegController(
 					begin//if the entry at the front needs to read the sec reg which is blocking, stall
 						//stall
 						enableB <= 0;
-						$display("B has RAW dependecny");
+						//$display("B has RAW dependecny");
+						shouldBStall_o <= 1;//stall if we have dependancy
 					end
 					else if(regBlockingFile[sOperandB_Q[frontB % NUM_QUEUE_ENTRIES]] == 0)
 					begin//if the entry at the front of the queue wants to the sec reg that is not blocking, pop from the queue
@@ -407,7 +425,8 @@ module RegController(
 						secOperandB <= sOperandB_Q[frontB % NUM_QUEUE_ENTRIES];
 						//incrementing the front
 						frontB <= frontB + 1;
-						$display("Poping B");
+						//$display("Poping B");
+						shouldBStall_o <= 0;//unstall is we can pop
 					end					
 				end
 				else if((pReadB_Q[frontB % NUM_QUEUE_ENTRIES] == 0) && (sReadB_Q[frontB % NUM_QUEUE_ENTRIES] == 0))//if we need no reg reads
@@ -423,7 +442,8 @@ module RegController(
 					secOperandB <= sOperandB_Q[frontB % NUM_QUEUE_ENTRIES];
 					//incrementing the front
 					frontB <= frontB + 1; 			
-					$display("Poping B");
+					//$display("Poping B");
+					shouldBStall_o <= 0;//unstall is we can pop
 				end
 				
 			end
@@ -452,6 +472,10 @@ module RegController(
 			end
 			else if(bypassFunctionTypeA == 1 && (bypassOpcodeA == 10 || bypassOpcodeA == 0) && bypassPWriteA)//if a load/store instruction and if its a reg assignment
 			begin
+				$display("Pipe A direct reg assignment");
+				$display("Reg addr: %d", bypassRegAddrA);
+				$display("Assigned value: %d", secOperandReturnA);
+				$display("is secondary read: %d", bypassSReadA);
 				//perform the direct reg assignment
 				assignEnableA <= 1; 
 				assignAddrA <= bypassRegAddrA;
@@ -464,6 +488,7 @@ module RegController(
 				opcodeA <= 0;
 				functionTypeA <= 0;
 				enableA <= 0;
+				
 			end
 			else
 			begin
@@ -494,6 +519,10 @@ module RegController(
 			end
 			else if(bypassFunctionTypeB == 1 && (bypassOpcodeB == 10 || bypassOpcodeB == 0) && bypassPWriteB)//if a load/store instruction and if its a reg assignment
 			begin
+				$display("Pipe B direct reg assignment");
+				$display("Reg addr: %d", bypassRegAddrB);
+				$display("Assigned value: %d", secOperandReturnB);/////NOT SET
+				$display("is secondary read: %d", bypassSReadB);
 				//perform the direct reg assignment
 				assignEnableB <= 1; 
 				assignAddrB <= bypassRegAddrB;

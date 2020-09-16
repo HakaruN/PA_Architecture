@@ -48,6 +48,18 @@ module PA_Core(
 	wire [7:0] shiftOutAddress;
 	wire [BLOCK_SIZE * BITS_PER_BYTE - 1:0] shiftOutCacheLine;
 	
+	//outputs from stall unit	//inputs to stall unit	
+
+	wire fetch1isStalled;		//no input to stall 
+	wire fetch2isStalled,		fetch2shouldStall;
+	wire parserAisStalled,		parserAshouldStall;
+	wire parserBisStalled,		parserBshouldStall;
+	wire decodeAisStalled,		decodeAshouldStall;
+	wire decodeBisStalled,		decodeBshouldStall;
+	wire								registerAshouldStall;
+	wire								registerBshouldStall;
+	
+	
 	cachWriteShiftReg shiftReg (
 	//inputs
 		.enable_i(shiftEn_i), .clock_i(shiftClk_i),
@@ -77,6 +89,7 @@ module PA_Core(
 	.clock_i(clock_i),
 	.reset_i(reset_i),
 	.blockAddr_i(PC[10:0]),
+	.shouldStalled_i(fetch1isStalled),
 	//instruction write
 	.writeEnable_i(shiftOutWriteEnable),
 	.writeAddress_i(shiftOutAddress),
@@ -85,12 +98,12 @@ module PA_Core(
 	.block_o(fetchedCacheline),
 	.enable_o(fetch1enableOut)
 	);
-	
+
 	
 	//fetch 2 out, parse in
 	wire backDisable;
 	wire [3:0] nextByteOffset;
-	wire [31:0] instructionA, instructionB;
+	wire [29:0] instructionA, instructionB;
 	wire instructionAFormat, instructionBFormat;
 	wire fetch2AEnable, fetch2BEnable;
 	
@@ -100,16 +113,18 @@ module PA_Core(
 	.clock_i(clock_i),
 	.reset_i(reset_i),
 	.enable_i(fetch1enableOut),
+	.shouldStalled_i(fetch2isStalled), 
 	//input
 	.byteAddr_i(PC[4:0]),
 	.block_i(fetchedCacheline),	
 	//fetch out	put
+	.shouldStalled_o(fetch2shouldStall),
 	.nextByteOffset_o(nextByteOffset),//number of bytes to increment the pc by to get to the next vliw bundle
 	.InstructionA_o(instructionA), .InstructionB_o(instructionB),
 	.InstructionAFormat_o(instructionAFormat), .InstructionBFormat_o(instructionBFormat),
 	.enableA_o(fetch2AEnable), .enableB_o(fetch2BEnable)
 	);
-	
+
 	//parse out - decode in
 	wire instructionAFormat_po, instructionBFormat_po;
 	wire isBranchA_po, isBranchB_po;
@@ -120,20 +135,22 @@ module PA_Core(
 	
 	Parser parseA(
 		//control
-		.clock_i(clock_i), .enable_i(fetch2AEnable),
+		.clock_i(clock_i), .enable_i(fetch2AEnable), .shouldStalled_i(parserAisStalled),
 		//input
 		.Instruction_i(instructionA), .InstructionFormat_i(instructionAFormat),
 		//output
+		.shouldStalled_o(parserAshouldStall),
 		.instructionFormat_o(instructionAFormat_po), .isBranch_o(isBranchA_po), .opcode_o(opcodeA_po),
 		.primOperand_o(primOperandA_po), .secOperand_o(secOperandA_po), .enable_o(enableA_po)
 	);
-	
+
 	Parser parseB(
 		//control
-		.clock_i(clock_i), .enable_i(fetch2BEnable),
+		.clock_i(clock_i), .enable_i(fetch2BEnable), .shouldStalled_i(parserBisStalled),
 		//input
 		.Instruction_i(instructionB), .InstructionFormat_i(instructionBFormat),
 		//output
+		.shouldStalled_o(parserBshouldStall),
 		.instructionFormat_o(instructionBFormat_po), .isBranch_o(isBranchB_po), .opcode_o(opcodeB_po),
 		.primOperand_o(primOperandB_po), .secOperand_o(secOperandB_po), .enable_o(enableB_po)
 	);
@@ -148,17 +165,21 @@ module PA_Core(
 	
 	
 	///decode units
-	Decode decodeUnit_A(.clock_i(clock_i), .enable_i(enableA_po), .flushBack_i(flushBack), .isBranch_i(isBranchA_po), 
+	Decode decodeUnit_A(.clock_i(clock_i), .enable_i(enableA_po), .shouldStall_i(decodeAisStalled),
+	.flushBack_i(flushBack), .isBranch_i(isBranchA_po), 
 	.instructionFormat_i(instructionAFormat_po), .opcode_i(opcodeA_po), .primOperand_i(primOperandA_po), .secOperand_i(secOperandA_po),
-	/*.stall_i(isStalledFrontEnd),*/
+	.shouldStall_o(decodeAshouldStall),
 	.opcode_o(opcodeA), .functionType_o(functionTypeA), .primOperand_o(primOperandA), .secOperand_o(secOperandA),
 	.pWrite_o(pWriteA), .pRead_o(pReadA), .sRead_o(sReadA), .enable_o(decodeOEnableA));
 	
-	Decode decodeUnit_B(.clock_i(clock_i), .enable_i(enableB_po), .flushBack_i(flushBack), .isBranch_i(isBranchB_po), 
+	Decode decodeUnit_B(.clock_i(clock_i), .enable_i(enableB_po), .shouldStall_i(decodeBisStalled),
+	.flushBack_i(flushBack), .isBranch_i(isBranchB_po), 
 	.instructionFormat_i(instructionBFormat_po), .opcode_i(opcodeB_po), .primOperand_i(primOperandB_po), .secOperand_i(secOperandB_po),
-	/*.stall_i(isStalledFrontEnd),*/
+	.shouldStall_o(decodeBshouldStall),
 	.opcode_o(opcodeB), .functionType_o(functionTypeB), .primOperand_o(primOperandB), .secOperand_o(secOperandB),
 	.pWrite_o(pWriteB), .pRead_o(pReadB), .sRead_o(sReadB), .enable_o(decodeOEnableB));
+	
+	
 	
 	//Reg read out - dispatch in
 	wire enableExecA, enableExecB;//enables for the exec units
@@ -181,6 +202,7 @@ module PA_Core(
 	RegController registers(
 	//control hardware
 	.clock_i(clock_i), .reset_i(reset_i), 
+	.shouldAStall_o(registerAshouldStall), .shouldBStall_o(registerBshouldStall),
 	
 	//data in - from decode
 	.enableA_i(decodeOEnableA), .enableB_i(decodeOEnableB),//enable from decode
@@ -358,6 +380,32 @@ module PA_Core(
 		.status_o(writebackStatusB)
 	);
 	
+	
+	
+	PipelineStallUnit stallUnit(
+		//control
+		.clock_i(clock_i),
+		.reset_i(reset_i),				
+		//input from stalled units
+		.fetch2Stall_i(fetch2shouldStall),
+		.parserAStall_i(parserAshouldStall),
+		.parserBStall_i(parserBshouldStall),
+		.decodeAStall_i(decodeAshouldStall),
+		.decodeBStall_i(decodeBshouldStall),
+		.registerAStall_i(registerAshouldStall),
+		.registerBStall_i(registerBshouldStall),
+		
+		//output to stages to stall
+		.fetch1Stall_o(fetch1isStalled),
+		.fetch2Stall_o(fetch2isStalled),
+		.parserAStall_o(parserAisStalled),
+		.parserBStall_o(parserBisStalled),
+		.decodeAStall_o(decodeAisStalled),
+		.decodeBStall_o(decodeBisStalled)
+    );
+	
+
+	
 	always@ (posedge clock_i)
 	begin
 		if(reset_i)
@@ -385,7 +433,7 @@ module PA_Core(
 				endcase
 			end
 			else
-				if(nextByteOffset)
+				if(nextByteOffset  && (fetch1isStalled == 0))
 				begin
 					$display("PC += %d", nextByteOffset);
 					PC <= PC + nextByteOffset;//incremenet the PC by a quadword
@@ -400,7 +448,7 @@ module PA_Core(
 		$display("icacheWriteEnable: %d", shiftEn_i);
 		if(shiftEn_i == 0)
 		begin
-		/*
+		
 			$display("\n");
 			$display("Global processor state Registers; PC: %d, Reset: %d", PC,  reset_i);
 			
@@ -435,7 +483,7 @@ module PA_Core(
 			$display("Reg accesses (pw,pr,sr); A:%d,%d,%d, B:%d,%d,%d", pWriteA, pReadA, sReadA, pWriteB, pReadB, sReadB);
 			$display("Is secondary immediate (0) or reg(1); A:%b, B:%b", sReadA, sReadB);
 			$display("Enables; A:%d, B:%d", decodeOEnableA, decodeOEnableB);
-			
+			/*
 			//Reg read out - dispatch in
 			$display("\nReg Read:\nEnable; A:%b, B:%b", enableExecA, enableExecB);
 			$display("IsWriteback; A:%b B:%b", isWbA, isWbB);

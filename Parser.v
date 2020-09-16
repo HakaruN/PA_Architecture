@@ -1,11 +1,16 @@
 `timescale 1ns / 1ps
 `default_nettype none
 module Parser(
+	//control
 	input wire clock_i,
 	input wire enable_i,
-	input wire [31:0] Instruction_i,
+	input wire shouldStalled_i,
+	//input
+	input wire [29:0] Instruction_i,
 	input wire InstructionFormat_i,
-	
+	//control out
+	output reg shouldStalled_o,
+	//output
 	output reg instructionFormat_o,
 	output reg isBranch_o,	
 	output reg [6:0] opcode_o,
@@ -16,7 +21,7 @@ module Parser(
 	
 	always @(posedge clock_i)
 	begin
-		if(enable_i == 1)
+		if(enable_i == 1 && (shouldStalled_i == 0))
 		begin
 			if(Instruction_i[27:21] != 0)//if not a nop
 			begin
