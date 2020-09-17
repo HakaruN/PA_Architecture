@@ -56,6 +56,7 @@ module PA_Core(
 	wire parserBisStalled,		parserBshouldStall;
 	wire decodeAisStalled,		decodeAshouldStall;
 	wire decodeBisStalled,		decodeBshouldStall;
+	wire depResisStalled, 		depResAshouldStall, depResBshouldStall;
 	wire								registerAshouldStall;
 	wire								registerBshouldStall;
 	
@@ -179,6 +180,39 @@ module PA_Core(
 	.opcode_o(opcodeB), .functionType_o(functionTypeB), .primOperand_o(primOperandB), .secOperand_o(secOperandB),
 	.pWrite_o(pWriteB), .pRead_o(pReadB), .sRead_o(sReadB), .enable_o(decodeOEnableB));
 	
+	
+
+	//dependancy resolution out - reg file in
+	wire enableA_dd, enableB_dd;
+	wire pwriteA_dd, preadA_dd, sreadA_dd, pwriteB_dd, preadB_dd, sreadB_dd;
+	wire [1:0] functionTypeA_dd, functionTypeB_dd;
+	wire [6:0] opcodeA_dd, opcodeB_dd;
+	wire [4:0] primOperandA_dd, primOperandB_dd;
+	wire [15:0] secOperandA_dd, secOperandB_dd;
+	
+	
+	
+	DataDependanctResolution dependancyResolution(
+		//control in
+		.clock_i(clock_i), .reset_i(reset_i),
+		//data in
+		.enableA_i(decodeOEnableA), .enableB_i(decodeOEnableB),
+		.pWriteA_i(pWriteA), .pReadA_i(pReadA), .sReadA_i(sReadA), .pWriteB_i(pWriteB), .pReadB_i(pReadB), .sReadB_i(sReadB),
+		.functionTypeA_i(functionTypeA), .functionTypeB_i(functionTypeB),
+		.opcodeA_i(opcodeA), .opcodeB_i(opcodeB),
+		.primOperandA_i(primOperandA), .primOperandB_i(primOperandB),
+		.secOperandA_i(secOperandA), .secOperandB_i(secOperandB),
+		.shouldStall_i(depResisStalled),
+		//control out
+		.isStalledA_o(depResAshouldStall), isStalledB_o(depResBshouldStall),
+		//data out
+		.enableA_o(enableA_dd), .enableB_o(enableB_dd),
+		.pwriteA_o(pwriteA_dd), .preadA_o(preadA_dd), .sreadA_o(sreadA_dd), .pwriteB_o(pwriteB_dd), .preadB_o(preadB_dd), .sreadB_o(sreadB_dd),
+		.functionTypeA_o(functionTypeA_dd), .functionTypeB_o(functionTypeB_dd),
+		.opcodeA_o(opcodeA_dd), .opcodeB_o(opcodeB_dd),
+		.primOperandA_o(primOperandA_dd), .primOperandB_o(primOperandB_dd),
+		.secOperandA_o(secOperandA_dd), .secOperandB_o(secOperandB_dd)
+	);
 	
 	
 	//Reg read out - dispatch in
@@ -392,6 +426,7 @@ module PA_Core(
 		.parserBStall_i(parserBshouldStall),
 		.decodeAStall_i(decodeAshouldStall),
 		.decodeBStall_i(decodeBshouldStall),
+		.depResAStall_i(depResAshouldStall), .depResBStall_i(depResBshouldStall),
 		.registerAStall_i(registerAshouldStall),
 		.registerBStall_i(registerBshouldStall),
 		
@@ -401,9 +436,9 @@ module PA_Core(
 		.parserAStall_o(parserAisStalled),
 		.parserBStall_o(parserBisStalled),
 		.decodeAStall_o(decodeAisStalled),
-		.decodeBStall_o(decodeBisStalled)
+		.decodeBStall_o(decodeBisStalled),
+		.depResStall_o(depResisStalled)
     );
-	
 
 	
 	always@ (posedge clock_i)

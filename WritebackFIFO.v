@@ -137,7 +137,7 @@ module WritebackFIFO(
 				Address_o <= Address[(front + 0) % NUM_QUEUE_ENTRIES];
 				Data_o <= Data[(front + 0) % NUM_QUEUE_ENTRIES];
 				status_o <= status[(front + 0) % NUM_QUEUE_ENTRIES];
-				front <= front + 1;
+				front <= (front + 1) % NUM_QUEUE_ENTRIES;
 			end			
 			
 		end

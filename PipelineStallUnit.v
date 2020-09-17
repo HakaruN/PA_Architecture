@@ -15,6 +15,7 @@ module PipelineStallUnit(
 		input wire parserBStall_i,
 		input wire decodeAStall_i,
 		input wire decodeBStall_i,
+		input wire depResAStall_i, depResBStall_i,
 		input wire registerAStall_i,
 		input wire registerBStall_i,
 		
@@ -24,7 +25,8 @@ module PipelineStallUnit(
 		output reg parserAStall_o,
 		output reg parserBStall_o,
 		output reg decodeAStall_o,
-		output reg decodeBStall_o
+		output reg decodeBStall_o,
+		output reg depResStall_o
 		
 		//TODO: ADD MORE INPUTS AND OUTPUTS FROM/TO LATER PIPELINE STAGES
     );
