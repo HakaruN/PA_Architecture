@@ -159,7 +159,7 @@ module RegController(
 			//insert a nop in place of this instruction as its retiring here
 			bypassEnableA <= 1;
 			bypassOpcodeA <= 0;
-			functionTypeA <= 0;			
+			bypassFunctionTypeA <= 0;			
 		end
 		else
 		begin
@@ -200,7 +200,7 @@ module RegController(
 			//insert a nop in place of this instruction as its retiring here
 			bypassEnableB <= 1;
 			bypassOpcodeB <= 0;
-			functionTypeB <= 0;		
+			bypassFunctionTypeB <= 0;		
 		end
 		else
 		begin

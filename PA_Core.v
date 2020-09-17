@@ -204,7 +204,7 @@ module PA_Core(
 		.secOperandA_i(secOperandA), .secOperandB_i(secOperandB),
 		.shouldStall_i(depResisStalled),
 		//control out
-		.isStalledA_o(depResAshouldStall), isStalledB_o(depResBshouldStall),
+		.isStalledA_o(depResAshouldStall), .isStalledB_o(depResBshouldStall),
 		//data out
 		.enableA_o(enableA_dd), .enableB_o(enableB_dd),
 		.pwriteA_o(pwriteA_dd), .preadA_o(preadA_dd), .sreadA_o(sreadA_dd), .pwriteB_o(pwriteB_dd), .preadB_o(preadB_dd), .sreadB_o(sreadB_dd),

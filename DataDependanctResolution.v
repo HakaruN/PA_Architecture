@@ -200,7 +200,4 @@ module DataDependanctResolution(
 		end
 		
 	end
-
-	
-	
 endmodule
