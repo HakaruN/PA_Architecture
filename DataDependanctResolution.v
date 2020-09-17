@@ -1,22 +1,13 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date:    23:55:37 09/16/2020 
-// Design Name: 
-// Module Name:    DataDependanctResolution 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
+//ATHis units function is to detect data dependencies in the instruction stream and insert nops where needed to prevent RAW hazards
+//The way this happens is instructions are submitted to a queue the instructions are checked (coming out of the queue) to see if their data dependencise are ok (by checking if the registers to be read from have a timeout above 0 in the regBlockingFile *see later*
+//when all instructions have cleared their dependancies, they are poped from the front of the queue and written to the output.
 //
-// Dependencies: 
-//
-// Revision: 
-// Revision 0.01 - File Created
-// Additional Comments: 
-//
+//*see later* - regBlockingFile
+//The reg blocking file has an entry for every register (in the current register bank for now), where its address coresponds to an entry in the blockingFile
+//if the value at that index is > 0, this means that there is >0 number of clock cycles left before this reg can be read from
+//(as a result of an instruction curerntly in flight down the pipeline that will write to that reg)
 //////////////////////////////////////////////////////////////////////////////////
 module DataDependanctResolution(
 	//	control

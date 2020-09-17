@@ -239,13 +239,14 @@ module PA_Core(
 	.shouldAStall_o(registerAshouldStall), .shouldBStall_o(registerBshouldStall),
 	
 	//data in - from decode
-	.enableA_i(decodeOEnableA), .enableB_i(decodeOEnableB),//enable from decode
-	.pwriteA_i(pWriteA), .preadA_i(pReadA), .sreadA_i(sReadA), .pwriteB_i(pWriteB), .preadB_i(pReadB), .sreadB_i(sReadB),//register accesses
-	.opcodeA_i(opcodeA), .opcodeB_i(opcodeB),
-	.primOperandA_i(primOperandA), .primOperandB_i(primOperandB),
-	.secOperandA_i(secOperandA), .secOperandB_i(secOperandB),
+	.enableA_i(enableA_dd), .enableB_i(enableB_dd),//enable from decode
+	.pwriteA_i(pwriteA_dd), .preadA_i(preadA_dd), .sreadA_i(sreadA_dd), .pwriteB_i(pwriteB_dd), .preadB_i(preadB_dd), .sreadB_i(sreadB_dd),//register accesses
+	.opcodeA_i(opcodeA_dd), .opcodeB_i(opcodeB_dd),
+	.primOperandA_i(primOperandA_dd), .primOperandB_i(primOperandB_dd),
+	.secOperandA_i(secOperandA_dd), .secOperandB_i(secOperandB_dd),
 	.flushBack_i(flushBack),
-	.functionTypeA_i(functionTypeA), .functionTypeB_i(functionTypeB),
+	.functionTypeA_i(functionTypeA_dd), .functionTypeB_i(functionTypeB_dd),
+
 	
 	//data out - to reservation station
 	.enableA_o(enableExecA), .enableB_o(enableExecB),

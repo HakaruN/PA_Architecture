@@ -41,11 +41,22 @@ begin
 		parserBStall_o <= 0;
 		decodeAStall_o <= 0;
 		decodeBStall_o <= 0;
+		depResStall_o <= 0;
 	end
 	else//run the else-ifs from the back of the pipeline forwards so if something at the back is stalling, 
 	begin//it will stall forwards and end up stalling the things at the front anyway. Otherwise the first match at the front coult be 
 	//picked up and only stall the front and not the back which is in need of stalling
 		if((registerAStall_i == 1) || (registerBStall_i == 1))//if a stall from the registers
+		begin
+			fetch1Stall_o <= 1;
+			fetch2Stall_o <= 1;
+			parserAStall_o <= 1;
+			parserBStall_o <= 1;
+			decodeAStall_o <= 1;
+			decodeBStall_o <= 1;
+			depResStall_o <= 1;
+		end
+		else if((depResAStall_i == 1) || (depResBStall_i == 1))//if a stall from the data dependancy unit
 		begin
 			fetch1Stall_o <= 1;
 			fetch2Stall_o <= 1;
