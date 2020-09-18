@@ -233,10 +233,9 @@ module PA_Core(
 	wire [1:0] writebackStatusA, writebackStatusB;
 	
 	///register file
-	RegController registers(
+	RegisterUnit registers(
 	//control hardware
 	.clock_i(clock_i), .reset_i(reset_i), 
-	.shouldAStall_o(registerAshouldStall), .shouldBStall_o(registerBshouldStall),
 	
 	//data in - from decode
 	.enableA_i(enableA_dd), .enableB_i(enableB_dd),//enable from decode

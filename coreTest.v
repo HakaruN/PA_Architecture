@@ -183,6 +183,12 @@ parameter NUM_CLOCK_CYCLES = 3;
 		clock_i = 0;
 		#1;
 
+
+		clock_i = 1;
+		#1;//data buffered into register
+		clock_i = 0;
+		#1;
+		
 		for(i = 0; i < NUM_CLOCK_CYCLES; i = i + 1)//run some clock cycles
 		begin
 			clock_i = 1;

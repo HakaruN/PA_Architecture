@@ -93,7 +93,8 @@ begin
 					21: begin functionType_o <= 3; pRead_o <= 0; pWrite_o <= 0; sRead_o <= 0; end//reg-frame--
 					22: begin functionType_o <= 3; pRead_o <= 0; pWrite_o <= 0; sRead_o <= 0; end//request new frame (unimplemented)
 					23: begin functionType_o <= 3; pRead_o <= 0; pWrite_o <= 0; sRead_o <= 0; end//del current stack frame (unimplemented)
-					24: begin functionType_o <= 3; pRead_o <= 0; pWrite_o <= 0; sRead_o <= 0; end//just to reg frame at secondary (unimplemented)
+					24: begin functionType_o <= 3; pRead_o <= 0; pWrite_o <= 0; sRead_o <= 0; end//jump to reg frame at secondary
+					25: begin functionType_o <= 3; pRead_o <= 0; pWrite_o <= 0; sRead_o <= 0; end//jump to reg frame at primary (unimplemented)
 					endcase
 				end
 				else//Register-Register
